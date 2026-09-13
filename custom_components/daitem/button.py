@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from homeassistant.components.button import ButtonEntity
-from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
@@ -26,7 +25,8 @@ class DaitemRefreshButton(DaitemEntity, ButtonEntity):
     """Force an immediate state read instead of waiting for the next cycle."""
 
     _attr_translation_key = "refresh"
-    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    # No entity category on purpose: pressing this acts on the panel, so it belongs with
+    # the controls rather than among the read-only diagnostic entities.
     _attr_entity_registry_visible_default = False
 
     def __init__(self, coordinator: DaitemCoordinator) -> None:
