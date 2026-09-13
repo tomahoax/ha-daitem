@@ -5,6 +5,13 @@ versioning.
 
 ## [Unreleased]
 
+### Changed
+
+- The manual refresh button moved from the diagnostic section of the device page to the
+  controls: pressing it acts on the panel rather than reporting on it. It stays hidden by
+  default. Home Assistant reapplies the section on reload, so existing installations move
+  too.
+
 ### Fixed
 
 - Presence arming no longer disappears until a manual reload. Arming modes were read once
@@ -12,13 +19,6 @@ versioning.
   panel only had to be busy for the second setup took to leave the installation on
   away-only arming. Discovery is now retried on the following cycles, and the Home button
   reappears on its own once it succeeds.
-
-### Changed
-
-- The manual refresh button moved from the diagnostic section of the device page to the
-  controls: pressing it acts on the panel rather than reporting on it. It stays hidden by
-  default. Home Assistant reapplies the section on reload, so existing installations move
-  too.
 
 ## [0.3.0] - 2026-09-13
 
