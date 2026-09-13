@@ -19,7 +19,7 @@ jobs:
     name: Hassfest
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # Deliberately not pinned to a release or a commit SHA, unlike the rest of this
       # file's third-party actions: hassfest is meant to be run against whatever Home
       # Assistant currently validates against, which is exactly what the weekly schedule
@@ -31,7 +31,7 @@ jobs:
     name: HACS
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # Same reasoning as hassfest above: HACS's own validation docs recommend tracking
       # `@main` rather than pinning, so this job catches HACS's own rule changes too.
       - uses: hacs/action@main
@@ -42,8 +42,8 @@ jobs:
     name: Lint and type check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.14"
           cache: pip
@@ -66,8 +66,8 @@ jobs:
       matrix:
         python-version: ["3.14"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
