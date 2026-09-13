@@ -46,6 +46,10 @@ ignore_missing_imports = true
 testpaths = ["tests"]
 asyncio_mode = "auto"
 addopts = "-q"
+# `tests/` has no `__init__.py`, so pytest's default import mode only puts `tests/` itself
+# on sys.path, not the repo root: `custom_components` fails to import under a bare
+# `pytest` invocation (only `python -m pytest`, which adds the CWD, happened to work).
+pythonpath = ["."]
 
 [tool.coverage.report]
 exclude_lines = [
