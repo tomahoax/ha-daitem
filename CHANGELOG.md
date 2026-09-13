@@ -17,12 +17,15 @@ versioning.
   blocked at startup leaving only away arming.
 - `docs/troubleshooting.md` and `docs/security-privacy.md`, a Lovelace dashboard example,
   GitHub issue templates, and an `info.md` shown in HACS instead of the full README.
+- Brand icons, in the integration itself rather than through the Home Assistant brands
+  repository. Dark theme variants too: the logo is black ink on transparency, so without
+  them it is all but invisible on a dark background.
 
 ### Changed
 
-- Releases are now created by pushing a `vX.Y.Z` tag. The workflow runs hassfest, ruff,
-  mypy and the tests first, then takes the release notes from the matching CHANGELOG
-  section, so the release body and the changelog cannot drift apart.
+- Releases are now created by pushing a `vX.Y.Z` tag. The workflow runs hassfest, HACS
+  validation, ruff, mypy and the tests first, then takes the release notes from the
+  matching CHANGELOG section, so the release body and the changelog cannot drift apart.
 
 ### Fixed
 

@@ -27,6 +27,13 @@ jobs:
 
       - uses: home-assistant/actions/hassfest@master
 
+      # HACS is what actually ships this release to users, so its rules are release
+      # blockers rather than advisory. Tracking `@main` (as HACS's own validation docs
+      # recommend) means a rule change surfaces here too.
+      - uses: hacs/action@main
+        with:
+          category: integration
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.14"
@@ -44,10 +51,6 @@ jobs:
 
       - name: Pytest
         run: pytest
-
-      # HACS validation deliberately runs in validate.yaml rather than here: it currently
-      # fails on the missing brand assets, and that must not block shipping a fix. Move it
-      # into this job once icons are in place.
 
   release:
     name: Create the release
