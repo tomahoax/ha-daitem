@@ -1,0 +1,11 @@
+# Minimal configuration to run a development Home Assistant instance with the
+# integration mounted from custom_components/.
+#
+#   hass -c config
+default_config:
+
+logger:
+  default: info
+  logs:
+    custom_components.daitem: debug
+    pydaitem: debug

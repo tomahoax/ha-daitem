@@ -1,0 +1,23 @@
+# Environments
+.venv/
+venv/
+config/*
+!config/configuration.yaml
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Secrets: never commit credentials or alarm codes
+.env
+secrets.*
+credentials.*
+!credentials.py
+*.credentials
+# The negation matters: a broad "credentials*" rule would also exclude a source module
+# named credentials.py, silently dropping it from the built package.

@@ -1,0 +1,47 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Daitem sign-in",
+        "description": "Prefer a dedicated secondary account. The code requested is the one tied to that account, not necessarily the owner's master code.",
+        "data": {
+          "email": "Email address",
+          "password": "Password",
+          "master_code": "Alarm code"
+        }
+      },
+      "system": {
+        "title": "Installation",
+        "data": {
+          "system_id": "Installation to add"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Daitem re-authentication",
+        "description": "Credentials for {email} are no longer valid. Enter the current password and code.",
+        "data": {
+          "password": "Password",
+          "master_code": "Alarm code"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to the Daitem service.",
+      "invalid_auth": "Invalid email address or password.",
+      "no_system": "No installation is linked to this account.",
+      "unknown": "Unexpected error."
+    },
+    "abort": {
+      "already_configured": "This installation is already configured.",
+      "reauth_successful": "Re-authentication successful.",
+      "no_system": "The selected installation is no longer available."
+    }
+  },
+  "entity": {
+    "button": {
+      "refresh": {
+        "name": "Refresh"
+      }
+    }
+  }
+}

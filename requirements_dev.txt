@@ -1,0 +1,16 @@
+# Development and test dependencies for the integration.
+# The runtime dependency (pydaitem) is declared in the manifest and installed by HA.
+
+homeassistant>=2025.1.0
+pytest>=8.0
+pytest-asyncio>=0.24
+pytest-cov>=5.0
+pytest-homeassistant-custom-component>=0.13
+ruff>=0.6
+mypy>=1.11
+pre-commit>=3.7
+
+# API client library, published on PyPI. Locally, prefer the editable install, which
+# takes precedence over this line:
+#   pip install -e ../pydaitem
+pydaitem>=0.1.0

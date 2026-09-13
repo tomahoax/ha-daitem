@@ -1,0 +1,60 @@
+[project]
+name = "ha-daitem"
+version = "0.1.0"
+description = "Unofficial Home Assistant integration for Daitem alarms (Atral Topaze)"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [{ name = "Yannick Olympio" }]
+
+# The only runtime dependency lives in custom_components/daitem/manifest.json: Home
+# Assistant installs it from PyPI itself. Nothing to duplicate here.
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/tomahoax/ha-daitem"
+Issues = "https://github.com/tomahoax/ha-daitem/issues"
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "C4", "UP", "SIM", "PTH", "ERA", "PL", "RUF"]
+ignore = [
+  "PLR0913", # Home Assistant readily passes many arguments to entities
+  "RUF012",  # HA class attributes (_attr_*) are not annotated ClassVar
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["PLR2004"] # literal comparisons are normal in tests
+
+[tool.mypy]
+python_version = "3.13"
+ignore_missing_imports = true
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+
+# Only our code is type-checked. Without follow_imports = skip, mypy parses the installed
+# Home Assistant sources and chokes on their recent syntax.
+[[tool.mypy.overrides]]
+module = ["homeassistant.*", "aiohttp.*", "voluptuous.*", "pydaitem.*", "pytest_homeassistant_custom_component.*"]
+follow_imports = "skip"
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-q"
+
+[tool.coverage.report]
+exclude_lines = [
+  "pragma: no cover",
+  "if TYPE_CHECKING:",
+  "def __repr__",
+  "raise NotImplementedError",
+]
+
+[tool.codespell]
+skip = "*.json,*.lock,./.git,./.venv"
+ignore-words-list = "hass"

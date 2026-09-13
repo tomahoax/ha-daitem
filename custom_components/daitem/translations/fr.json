@@ -1,0 +1,47 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connexion Daitem",
+        "description": "Utilisez de préférence un compte secondaire dédié. Le code demandé est celui associé à ce compte, pas nécessairement le code maître.",
+        "data": {
+          "email": "Adresse e-mail",
+          "password": "Mot de passe",
+          "master_code": "Code de l'alarme"
+        }
+      },
+      "system": {
+        "title": "Installation",
+        "data": {
+          "system_id": "Installation à ajouter"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Reconnexion Daitem",
+        "description": "Les identifiants du compte {email} ne sont plus valides. Saisissez le mot de passe et le code actuels.",
+        "data": {
+          "password": "Mot de passe",
+          "master_code": "Code de l'alarme"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Connexion au service Daitem impossible.",
+      "invalid_auth": "Adresse e-mail ou mot de passe incorrect.",
+      "no_system": "Aucune installation n'est associée à ce compte.",
+      "unknown": "Erreur inattendue."
+    },
+    "abort": {
+      "already_configured": "Cette installation est déjà configurée.",
+      "reauth_successful": "Reconnexion réussie.",
+      "no_system": "L'installation sélectionnée n'est plus disponible."
+    }
+  },
+  "entity": {
+    "button": {
+      "refresh": {
+        "name": "Rafraîchir"
+      }
+    }
+  }
+}

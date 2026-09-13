@@ -1,0 +1,50 @@
+# Release workflow for HACS.
+#
+# HACS ships the contents of custom_components/daitem from GitHub releases. This workflow
+# checks version consistency and attaches the archive to the release.
+#
+# Ordering matters: publish the matching pydaitem version to PyPI first, otherwise
+# installation fails for users because Home Assistant cannot find the dependency pinned in
+# the manifest.
+
+name: Release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # required to attach the archive to the release
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the manifest version matches the tag
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          TAG="${TAG#v}"
+          MANIFEST=$(jq -r .version custom_components/daitem/manifest.json)
+          echo "Tag: ${TAG:-<none>} / manifest: $MANIFEST"
+          if [ -n "$TAG" ] && [ "$TAG" != "$MANIFEST" ]; then
+            echo "::error::Manifest version ($MANIFEST) differs from tag ($TAG)."
+            exit 1
+          fi
+
+      - name: Report the pinned dependency
+        run: |
+          jq -r '.requirements[]' custom_components/daitem/manifest.json \
+            | sed 's/^/Required PyPI dependency: /'
+
+      - name: Build the archive
+        run: |
+          cd custom_components/daitem
+          zip -r ../../daitem.zip .
+
+      - name: Attach the archive to the release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
+        with:
+          files: daitem.zip
