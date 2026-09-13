@@ -13,4 +13,4 @@ pre-commit>=3.7
 # API client library, published on PyPI. Locally, prefer the editable install, which
 # takes precedence over this line:
 #   pip install -e ../pydaitem
-pydaitem>=0.1.0
+pydaitem>=0.1.1

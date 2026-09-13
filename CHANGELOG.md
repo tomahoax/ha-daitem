@@ -26,7 +26,7 @@ First public release.
   the panel is busy with another device.
 - Config flow with installation selection and re-authentication.
 - English and French translations, entity icons.
-- Pins `pydaitem>=0.1.0`. A test ties this pin to the library actually in use, since Home
+- Pins `pydaitem>=0.1.1`. A test ties this pin to the library actually in use, since Home
   Assistant installs it from PyPI while CI develops against the same package.
 
 ### Notes
