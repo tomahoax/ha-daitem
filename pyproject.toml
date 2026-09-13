@@ -3,7 +3,9 @@ name = "ha-daitem"
 version = "0.1.0"
 description = "Unofficial Home Assistant integration for Daitem alarms (Atral Topaze)"
 readme = "README.md"
-requires-python = ">=3.12"
+# Home Assistant requires Python 3.14.2+ starting with its own 2026.3.0 release, and the
+# declared minimum (see CHANGELOG.md) is above that, so anything lower cannot run it.
+requires-python = ">=3.14"
 license = { text = "MIT" }
 authors = [{ name = "Yannick Olympio" }]
 
@@ -17,7 +19,7 @@ Issues = "https://github.com/tomahoax/ha-daitem/issues"
 
 [tool.ruff]
 line-length = 120
-target-version = "py312"
+target-version = "py314"
 
 [tool.ruff.lint]
 select = ["E", "W", "F", "I", "B", "C4", "UP", "SIM", "PTH", "ERA", "PL", "RUF"]
@@ -30,7 +32,7 @@ ignore = [
 "tests/*" = ["PLR2004"] # literal comparisons are normal in tests
 
 [tool.mypy]
-python_version = "3.13"
+python_version = "3.14"
 ignore_missing_imports = true
 disallow_untyped_defs = false
 disallow_incomplete_defs = false
