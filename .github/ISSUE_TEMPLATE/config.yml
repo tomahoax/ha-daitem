@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question or general discussion
+    url: https://github.com/tomahoax/ha-daitem/discussions
+    about: For anything that is not a bug report, ask here.
+  - name: Known limitations of the Daitem API
+    url: https://github.com/tomahoax/ha-daitem#limitations-worth-reading-before-installing
+    about: One session at a time, no per-detector open/closed state, five-minute latency.

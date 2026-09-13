@@ -31,6 +31,11 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["PLR2004"] # literal comparisons are normal in tests
 
+[tool.ruff.lint.isort]
+# `conftest` is imported without a package prefix: the tests directory has no
+# `__init__.py`, which is what lets pytest find the custom_components package.
+known-first-party = ["custom_components", "conftest"]
+
 [tool.mypy]
 python_version = "3.14"
 ignore_missing_imports = true

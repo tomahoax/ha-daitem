@@ -48,5 +48,15 @@
     "panel": {
       "name": "Alarme - {installation_name}"
     }
+  },
+  "issues": {
+    "session_busy": {
+      "title": "La session du panneau Daitem est occupée par un autre appareil",
+      "description": "Le panneau n'accepte qu'une session à la fois, tous comptes confondus, et un autre appareil la retient depuis plusieurs cycles. Home Assistant continue d'afficher le dernier état connu, mais ne peut ni en lire un nouveau ni envoyer de commande tant que la session n'est pas libérée.\n\nFermez l'application Daitem sur votre téléphone. Si aucun appareil ne l'utilise, une session précédente est peut-être restée ouverte ; elle se libère d'elle-même au bout d'un moment."
+    },
+    "arm_modes_undiscovered": {
+      "title": "Seul l'armement total est disponible",
+      "description": "Home Assistant n'a pas pu lire les modes d'armement pris en charge par cette installation, seul l'armement total est donc proposé. C'est généralement que la session du panneau était occupée par un autre appareil, ou que le panneau était momentanément injoignable, au démarrage de l'intégration.\n\nRechargez l'intégration Daitem une fois le panneau joignable et libre pour retrouver l'armement « présence »."
+    }
   }
 }

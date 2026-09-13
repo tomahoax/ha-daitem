@@ -38,8 +38,15 @@ from pydaitem import (
 )
 
 from .const import ARMING_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL, DOMAIN
+from .repairs import async_set_arm_modes_issue, async_set_session_busy_issue
 
 _LOGGER = logging.getLogger(__name__)
+
+#: Consecutive busy cycles before the Repairs entry appears. Someone using the mobile app
+#: for a cycle or two is ordinary; a session still held after this long is usually one
+#: leaked by a client that stopped without disconnecting, and the user has no other way of
+#: knowing why the state stopped moving.
+SESSION_BUSY_ISSUE_THRESHOLD = 3
 
 type DaitemConfigEntry = ConfigEntry[DaitemCoordinator]
 
@@ -76,6 +83,7 @@ class DaitemCoordinator(DataUpdateCoordinator[DaitemData]):
         self.system = system
         self.arm_modes: frozenset[ArmMode] = frozenset({ArmMode.AWAY})
         self._inventory_failed = False
+        self._consecutive_session_busy = 0
 
     @property
     def system_id(self) -> int:
@@ -97,7 +105,9 @@ class DaitemCoordinator(DataUpdateCoordinator[DaitemData]):
             _LOGGER.debug("Full error: %s", err, exc_info=True)
             return
 
-        if not self.system.capabilities.discovered:
+        discovered = self.system.capabilities.discovered
+        async_set_arm_modes_issue(self.hass, self.system_id, active=not discovered)
+        if not discovered:
             _LOGGER.warning(
                 "Arming mode discovery was blocked, only away arming will be offered. "
                 "This can happen when another device is holding the panel session, or "
@@ -116,6 +126,9 @@ class DaitemCoordinator(DataUpdateCoordinator[DaitemData]):
             # Another device is driving the alarm; that is not a failure. Keep the last
             # known state rather than making entities unavailable.
             _LOGGER.debug("Panel session busy, keeping last known state: %s", err)
+            self._consecutive_session_busy += 1
+            if self._consecutive_session_busy >= SESSION_BUSY_ISSUE_THRESHOLD:
+                async_set_session_busy_issue(self.hass, self.system_id, active=True)
             if self.data is not None:
                 return DaitemData(
                     status=self.data.status,
@@ -126,6 +139,10 @@ class DaitemCoordinator(DataUpdateCoordinator[DaitemData]):
             raise UpdateFailed(f"Panel session busy: {err}") from err
         except DaitemError as err:
             raise UpdateFailed(f"Error communicating with Daitem: {err}") from err
+
+        if self._consecutive_session_busy:
+            self._consecutive_session_busy = 0
+            async_set_session_busy_issue(self.hass, self.system_id, active=False)
 
         self._schedule_for_state(status)
         return DaitemData(

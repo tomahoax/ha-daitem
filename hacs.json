@@ -1,6 +1,6 @@
 {
   "name": "Daitem",
   "content_in_root": false,
-  "render_readme": true,
+  "render_readme": false,
   "homeassistant": "2026.9.1"
 }

@@ -12,7 +12,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 from homeassistant.components.alarm_control_panel import AlarmControlPanelEntityFeature
-from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
+from homeassistant.const import CONF_PASSWORD
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers import device_registry as dr
@@ -28,30 +28,14 @@ from pydaitem import (
 )
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from conftest import ENTRY_DATA
 from custom_components.daitem.const import (
     ARMING_SCAN_INTERVAL,
     CONF_MASTER_CODE,
-    CONF_SYSTEM_ID,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
 )
 from custom_components.daitem.tokens import CONF_REFRESH_TOKEN, ConfigEntryTokenStore
-
-ENTRY_DATA = {
-    CONF_EMAIL: "account@example.test",
-    CONF_PASSWORD: "password",
-    CONF_MASTER_CODE: "0000",
-    CONF_SYSTEM_ID: 123456,
-}
-
-
-@pytest.fixture
-async def entry(hass: HomeAssistant, mock_client: AsyncMock) -> MockConfigEntry:
-    config_entry = MockConfigEntry(domain=DOMAIN, title="Home", data=ENTRY_DATA, unique_id="123456")
-    config_entry.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(config_entry.entry_id)
-    await hass.async_block_till_done()
-    return config_entry
 
 
 async def test_setup_creates_alarm_entity(hass: HomeAssistant, entry: MockConfigEntry) -> None:

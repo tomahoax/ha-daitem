@@ -1,0 +1,66 @@
+# Example dashboard for the Daitem integration, using stock Lovelace cards only.
+#
+# Paste into a view in YAML mode, then replace `alarm_home` with your own entity slug. It
+# comes from the panel device name, so an installation named "La Chapelle" gives
+# `alarm_control_panel.alarm_la_chapelle`.
+#
+# Settings > Devices & services > Daitem > your installation lists every entity id.
+
+type: vertical-stack
+cards:
+  - type: alarm-panel
+    name: Alarm
+    entity: alarm_control_panel.alarm_home
+    # Only the two modes the integration exposes. Adding arm_night or arm_vacation here
+    # shows buttons the panel will refuse.
+    states:
+      - arm_away
+      - arm_home
+
+  # Visible only while another device holds the panel session: the state below is then the
+  # last known one, not a fresh read.
+  - type: conditional
+    conditions:
+      - condition: state
+        entity: alarm_control_panel.alarm_home
+        attribute: session_busy
+        state: true
+    card:
+      type: markdown
+      content: >-
+        The Daitem app is holding the panel session. The state shown is the last known one,
+        and commands will be refused until the app is closed.
+
+  - type: entities
+    title: Panel
+    show_header_toggle: false
+    entities:
+      - type: attribute
+        entity: alarm_control_panel.alarm_home
+        attribute: last_successful_update
+        name: Last successful update
+      - type: attribute
+        entity: alarm_control_panel.alarm_home
+        attribute: active_groups
+        name: Active groups
+      - entity: binary_sensor.alarm_home_main_power_supply
+        name: Main power supply
+      - entity: binary_sensor.alarm_home_backup_power_supply
+        name: Backup power supply
+      - entity: binary_sensor.alarm_home_transmission_media
+        name: Transmission media
+      - entity: binary_sensor.alarm_home_mechanical_tamper
+        name: Mechanical tamper
+      - entity: button.alarm_home_refresh
+        name: Refresh now
+
+  # One row per detector. Battery and radio are the two fault sensors visible by default;
+  # the others exist but are hidden, and can be added here by entity id.
+  - type: entities
+    title: Detectors
+    show_header_toggle: false
+    entities:
+      - entity: binary_sensor.REPLACE_ME_battery
+        name: Front door battery
+      - entity: binary_sensor.REPLACE_ME_radio
+        name: Front door radio

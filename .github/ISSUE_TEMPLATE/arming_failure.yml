@@ -1,0 +1,65 @@
+name: Arming or disarming fails
+description: A command sent from Home Assistant does not reach the alarm.
+labels: [bug, command]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Commands need an open panel session, and the panel accepts only one at a time.
+        Before reporting, make sure the Daitem app is closed on every phone, then try again:
+        that alone explains most failed commands.
+
+        Worth knowing: the integration never retries a command. A replayed request could arm
+        or disarm twice, so a failure is surfaced rather than silently retried.
+
+  - type: dropdown
+    id: command
+    attributes:
+      label: Which command failed?
+      options:
+        - Arm away
+        - Arm home (presence)
+        - Disarm
+        - Arming from a schedule
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: message
+    attributes:
+      label: What did Home Assistant show?
+      description: The exact error message, if there was one.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: app_state
+    attributes:
+      label: Was the Daitem mobile app open or recently used?
+      options:
+        - No, it had been closed for a while
+        - Yes, it was open
+        - It had been used within the last few minutes
+        - Not sure
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Integration version
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Debug logs covering the failed command
+      description: |
+        Enable debug logging on the Daitem integration card, send the command again, then
+        disable it to download the log. This is the one thing that shows what the panel
+        actually answered.
+      render: shell
+    validations:
+      required: true

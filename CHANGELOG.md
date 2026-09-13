@@ -3,6 +3,32 @@
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and semantic
 versioning.
 
+## [Unreleased]
+
+### Added
+
+- Diagnostics download on the integration, so a bug report can carry the coordinator state,
+  the panel state, the inventory and the raw API payloads. Credentials, the alarm code and
+  the refresh token are never included; serial numbers, device names and the email are only
+  partially kept. Redaction matches key fragments rather than a fixed list, so a field
+  nobody anticipated in a raw payload is redacted too.
+- Repairs entries for the two degradations that used to be a log line only: the panel
+  session held by another device for several cycles in a row, and arming mode discovery
+  blocked at startup leaving only away arming.
+- `docs/troubleshooting.md` and `docs/security-privacy.md`, a Lovelace dashboard example,
+  GitHub issue templates, and an `info.md` shown in HACS instead of the full README.
+
+### Changed
+
+- Releases are now created by pushing a `vX.Y.Z` tag. The workflow runs hassfest, ruff,
+  mypy and the tests first, then takes the release notes from the matching CHANGELOG
+  section, so the release body and the changelog cannot drift apart.
+
+### Fixed
+
+- The README listed per-group arming as a feature of the integration. Only the underlying
+  pydaitem library offers it; the alarm entity exposes away and presence arming.
+
 ## [0.2.0] - 2026-09-13
 
 ### Changed

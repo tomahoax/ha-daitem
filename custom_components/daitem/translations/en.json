@@ -48,5 +48,15 @@
     "panel": {
       "name": "Alarm - {installation_name}"
     }
+  },
+  "issues": {
+    "session_busy": {
+      "title": "The Daitem panel session is held by another device",
+      "description": "The panel accepts a single session at a time, across all accounts, and another device has been holding it for several polling cycles. Home Assistant keeps showing the last known state, but cannot read a fresh one or send a command until the session is released.\n\nClose the Daitem app on your phone. If no device is using it, a previous session may have been left open; it is released on its own after a while."
+    },
+    "arm_modes_undiscovered": {
+      "title": "Only away arming is available",
+      "description": "Home Assistant could not read which arming modes this installation supports, so only away arming is offered. This usually means the panel session was held by another device, or the panel was briefly unreachable, when the integration started.\n\nReload the Daitem integration once the panel is reachable and free to get presence arming back."
+    }
   }
 }

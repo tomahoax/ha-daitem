@@ -10,10 +10,13 @@ private API of the Daitem Secure mobile app.
 
 ## Features
 
-- `alarm_control_panel` entity: state and control.
-- Full arming, "presence" partial arming, per-group arming, disarming.
-- Panel **fault** sensors (power supply, tamper, transmission media).
-- Manual refresh button.
+- `alarm_control_panel` entity: full arming, "presence" partial arming, disarming.
+- **Fault** sensors on the panel (power supply, tamper, transmission media) and on each
+  detector (battery, radio, masking, tamper).
+- Manual refresh button, hidden by default.
+- **Repairs** entries when the panel session stays held by another device, or when arming
+  mode discovery was blocked at startup.
+- Diagnostics download, with credentials and codes redacted.
 
 ## Limitations, worth reading before installing
 
@@ -90,6 +93,14 @@ Only `presence` is confirmed by its technical key. What a named preset or a dire
 activation actually means is a guess the integration cannot vouch for, so it is shown as
 an honest `unknown` rather than a label (such as "night" or "vacation") that might be
 wrong.
+
+## Documentation
+
+- [Troubleshooting](docs/troubleshooting.md): unavailable entity, only away arming offered,
+  debug logs, diagnostics.
+- [Security and privacy](docs/security-privacy.md): where your credentials go, what is read,
+  what ends up in logs.
+- [Dashboard examples](lovelace/): stock Lovelace cards to copy.
 
 ## Development
 

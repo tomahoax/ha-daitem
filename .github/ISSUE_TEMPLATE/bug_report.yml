@@ -1,0 +1,79 @@
+name: Bug report
+description: Something does not work as expected.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this.
+
+        Two known limitations come from the Daitem API itself, not from the integration, and
+        are not bugs:
+
+        - **The panel accepts one session at a time, across all accounts.** While the Daitem
+          app is open on a phone, a command from Home Assistant fails with an explicit
+          message and the state stops refreshing. A dedicated secondary account does not
+          work around it.
+        - **No open/closed state per detector.** The API only exposes faults (battery,
+          tamper, radio, masking).
+
+        See the [troubleshooting guide](https://github.com/tomahoax/ha-daitem/blob/main/docs/troubleshooting.md)
+        before opening an issue.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened
+      description: What you expected, and what happened instead.
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Integration version
+      description: Settings > Devices & services > Daitem, or the HACS entry. For example 0.2.0.
+    validations:
+      required: true
+
+  - type: input
+    id: ha_version
+    attributes:
+      label: Home Assistant version
+      description: Settings > About. For example 2026.9.1.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: account
+    attributes:
+      label: Which account does the integration use?
+      options:
+        - The owner account (master code)
+        - A restricted secondary account
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics
+      description: |
+        Settings > Devices & services > Daitem > your installation > Download diagnostics.
+
+        Credentials, the alarm code and the refresh token are never included, and serial
+        numbers and device names are only partially kept. Have a look before attaching it
+        anyway.
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Debug logs
+      description: |
+        Optional but valuable, especially for anything intermittent. On the Daitem
+        integration card, open the three-dot menu and choose "Enable debug logging",
+        reproduce the problem, then "Disable debug logging" to download the log.
+      render: shell

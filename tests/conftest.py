@@ -9,9 +9,21 @@ from collections.abc import Generator
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
+from homeassistant.core import HomeAssistant
 from pydaitem import ArmMode, Inventory, System, SystemStatus
+from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+from custom_components.daitem.const import CONF_MASTER_CODE, CONF_SYSTEM_ID, DOMAIN
 
 pytest_plugins = ["pytest_homeassistant_custom_component"]
+
+ENTRY_DATA = {
+    CONF_EMAIL: "account@example.test",
+    CONF_PASSWORD: "password",
+    CONF_MASTER_CODE: "0000",
+    CONF_SYSTEM_ID: 123456,
+}
 
 
 @pytest.fixture(autouse=True)
@@ -80,3 +92,13 @@ def mock_client(mock_system: System, mock_status: SystemStatus, mock_inventory: 
         # an AsyncMock swallows every keyword, and a renamed argument would ship green.
         client.constructor = client_cls
         yield client
+
+
+@pytest.fixture
+async def entry(hass: HomeAssistant, mock_client: AsyncMock) -> MockConfigEntry:
+    """A configured installation, set up and ready."""
+    config_entry = MockConfigEntry(domain=DOMAIN, title="Home", data=ENTRY_DATA, unique_id="123456")
+    config_entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(config_entry.entry_id)
+    await hass.async_block_till_done()
+    return config_entry
