@@ -3,7 +3,7 @@
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and semantic
 versioning.
 
-## [Unreleased]
+## [0.3.0] - 2026-09-13
 
 ### Added
 
