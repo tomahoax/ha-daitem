@@ -58,7 +58,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: DaitemConfigEntry) -> bo
         config_entry_id=entry.entry_id,
         identifiers={(DOMAIN, str(coordinator.system_id))},
         manufacturer="Daitem",
-        name=entry.title,
+        translation_key="panel",
+        translation_placeholders={"installation_name": entry.title},
     )
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)

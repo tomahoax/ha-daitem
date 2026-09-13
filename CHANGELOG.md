@@ -3,7 +3,15 @@
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and semantic
 versioning.
 
-## [0.1.0] - not yet published
+## [Unreleased]
+
+### Changed
+
+- The panel device is now named "Alarm - {installation name}" (translated), instead of
+  just the installation name, so it stands out from the plain detector devices in the
+  device list.
+
+## [0.1.0] - 2026-09-13
 
 First public release.
 

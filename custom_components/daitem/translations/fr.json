@@ -43,5 +43,10 @@
         "name": "Rafraîchir"
       }
     }
+  },
+  "device": {
+    "panel": {
+      "name": "Alarme - {installation_name}"
+    }
   }
 }

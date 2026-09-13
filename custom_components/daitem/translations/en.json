@@ -43,5 +43,10 @@
         "name": "Refresh"
       }
     }
+  },
+  "device": {
+    "panel": {
+      "name": "Alarm - {installation_name}"
+    }
   }
 }

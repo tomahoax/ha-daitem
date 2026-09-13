@@ -20,7 +20,8 @@ class DaitemEntity(CoordinatorEntity[DaitemCoordinator]):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, str(coordinator.system_id))},
             manufacturer="Daitem",
-            name=coordinator.config_entry.title,
+            translation_key="panel",
+            translation_placeholders={"installation_name": coordinator.config_entry.title},
             model=inventory.central_type if inventory else None,
             serial_number=inventory.central_serial if inventory else None,
         )
