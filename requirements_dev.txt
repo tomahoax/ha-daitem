@@ -1,11 +1,15 @@
 # Development and test dependencies for the integration.
 # The runtime dependency (pydaitem) is declared in the manifest and installed by HA.
 
-homeassistant>=2025.1.0
+# Floor matches the declared minimum (see CHANGELOG.md): a lower floor let a fresh
+# install resolve an older homeassistant lacking an API the integration actually uses
+# (device_registry.async_get_device_id_by_identifier), invisible locally because this
+# environment already had a newer version installed.
+homeassistant>=2026.9.1
 pytest>=8.0
 pytest-asyncio>=0.24
 pytest-cov>=5.0
-pytest-homeassistant-custom-component>=0.13
+pytest-homeassistant-custom-component>=0.13.364
 ruff>=0.6
 mypy>=1.11
 pre-commit>=3.7
