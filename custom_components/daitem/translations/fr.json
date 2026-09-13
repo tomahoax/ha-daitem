@@ -56,7 +56,7 @@
     },
     "arm_modes_undiscovered": {
       "title": "Seul l'armement total est disponible",
-      "description": "Home Assistant n'a pas pu lire les modes d'armement pris en charge par cette installation, seul l'armement total est donc proposé. C'est généralement que la session du panneau était occupée par un autre appareil, ou que le panneau était momentanément injoignable, au démarrage de l'intégration.\n\nRechargez l'intégration Daitem une fois le panneau joignable et libre pour retrouver l'armement « présence »."
+      "description": "Home Assistant n'a pas pu lire les modes d'armement pris en charge par cette installation, seul l'armement total est donc proposé pour le moment. C'est généralement que la session du panneau était occupée par un autre appareil, ou que le panneau était momentanément injoignable, au démarrage de l'intégration.\n\nLa lecture est réessayée automatiquement aux cycles suivants. Fermez l'application Daitem sur votre téléphone si elle est ouverte, et l'armement « présence » revient de lui-même en quelques minutes."
     }
   }
 }

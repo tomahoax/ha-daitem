@@ -65,12 +65,19 @@ class DaitemAlarmPanel(DaitemEntity, AlarmControlPanelEntity):
     def __init__(self, coordinator: DaitemCoordinator) -> None:
         super().__init__(coordinator)
         self._attr_unique_id = f"{coordinator.system_id}_alarm"
-        # Advertise only the modes this installation actually supports, as reported by the
-        # library, and only the ones FEATURE_MAP maps to a verified meaning.
+
+    @property
+    def supported_features(self) -> AlarmControlPanelEntityFeature:
+        """Advertise only the modes this installation actually supports.
+
+        Read on every state write rather than frozen at construction: discovery can be
+        blocked at setup by a session another device holds, and the coordinator retries
+        it. The Home button then comes back on its own, without a reload.
+        """
         features = AlarmControlPanelEntityFeature(0)
-        for mode in coordinator.arm_modes:
+        for mode in self.coordinator.arm_modes:
             features |= FEATURE_MAP.get(mode, AlarmControlPanelEntityFeature(0))
-        self._attr_supported_features = features
+        return features
 
     @property
     def alarm_state(self) -> AlarmControlPanelState | None:

@@ -56,7 +56,7 @@
     },
     "arm_modes_undiscovered": {
       "title": "Only away arming is available",
-      "description": "Home Assistant could not read which arming modes this installation supports, so only away arming is offered. This usually means the panel session was held by another device, or the panel was briefly unreachable, when the integration started.\n\nReload the Daitem integration once the panel is reachable and free to get presence arming back."
+      "description": "Home Assistant could not read which arming modes this installation supports, so only away arming is offered for now. This usually means the panel session was held by another device, or the panel was briefly unreachable, when the integration started.\n\nIt is retried automatically on the next polling cycles. Close the Daitem app on your phone if it is open, and presence arming comes back on its own within a few minutes."
     }
   }
 }

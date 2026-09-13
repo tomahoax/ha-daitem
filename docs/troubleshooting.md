@@ -33,10 +33,14 @@ completed a successful read, or a read cycle failed for a reason other than a bu
 
 ## Only away arming is offered
 
-Arming modes are read once, at setup. If the panel session was held by another device at
-that moment, or the panel was briefly unreachable, discovery is skipped and only away
-arming is available. A Repairs entry says so. Reload the integration once the panel is
-reachable and free.
+Arming modes are read at setup. If the panel session was held by another device at that
+moment, or the panel was briefly unreachable, discovery is skipped and only away arming is
+available. A Repairs entry says so.
+
+Discovery is retried on the following polling cycles, so this resolves itself: close the
+Daitem app on your phone if it is open, and presence arming comes back within a few
+minutes, along with the Repairs entry clearing. Reloading the integration only makes it
+happen sooner.
 
 Note that named presets beyond "presence" are never offered, by design: what a preset means
 cannot be verified, so it is not exposed as a guessed "night" or "vacation" label.

@@ -3,6 +3,16 @@
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and semantic
 versioning.
 
+## [Unreleased]
+
+### Fixed
+
+- Presence arming no longer disappears until a manual reload. Arming modes were read once
+  at setup, and the alarm entity froze the modes it advertised at construction, so the
+  panel only had to be busy for the second setup took to leave the installation on
+  away-only arming. Discovery is now retried on the following cycles, and the Home button
+  reappears on its own once it succeeds.
+
 ## [0.3.0] - 2026-09-13
 
 ### Added

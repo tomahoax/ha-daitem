@@ -84,6 +84,7 @@ class DaitemCoordinator(DataUpdateCoordinator[DaitemData]):
         self.arm_modes: frozenset[ArmMode] = frozenset({ArmMode.AWAY})
         self._inventory_failed = False
         self._consecutive_session_busy = 0
+        self._capabilities_discovered = False
 
     @property
     def system_id(self) -> int:
@@ -91,28 +92,36 @@ class DaitemCoordinator(DataUpdateCoordinator[DaitemData]):
         return self.system.system_id
 
     async def async_load_capabilities(self) -> None:
-        """Discover the arming modes this installation supports, once at setup."""
+        """Discover the arming modes this installation supports.
+
+        Retried on later cycles until it succeeds, because the panel only has to be busy
+        for the one second this runs at setup to leave the installation on away-only
+        arming. That used to last until somebody reloaded the integration by hand.
+        """
         try:
             self.arm_modes = await self.system.capabilities.arm_modes()
         except DaitemError as err:
             # Defensive only: the façade swallows discovery failures itself today and
             # returns away alone. Kept in case that contract changes.
             _LOGGER.warning(
-                "Could not discover the arming modes, only away arming will be offered. "
-                "Reload the integration to try again: %s",
+                "Could not discover the arming modes, only away arming will be offered "
+                "until a later cycle succeeds: %s",
                 err,
             )
             _LOGGER.debug("Full error: %s", err, exc_info=True)
             return
 
         discovered = self.system.capabilities.discovered
+        if discovered and not self._capabilities_discovered:
+            _LOGGER.info("Arming mode discovery succeeded, offering: %s", sorted(m.value for m in self.arm_modes))
+        self._capabilities_discovered = discovered
         async_set_arm_modes_issue(self.hass, self.system_id, active=not discovered)
         if not discovered:
             _LOGGER.warning(
-                "Arming mode discovery was blocked, only away arming will be offered. "
-                "This can happen when another device is holding the panel session, or "
-                "when the panel was briefly unreachable. Reload the integration once "
-                "the panel is reachable and free to get presence arming back."
+                "Arming mode discovery was blocked, only away arming will be offered for "
+                "now. This can happen when another device is holding the panel session, "
+                "or when the panel was briefly unreachable. It is retried on the next "
+                "cycles, so presence arming comes back on its own."
             )
 
     async def _async_update_data(self) -> DaitemData:
@@ -143,6 +152,11 @@ class DaitemCoordinator(DataUpdateCoordinator[DaitemData]):
         if self._consecutive_session_busy:
             self._consecutive_session_busy = 0
             async_set_session_busy_issue(self.hass, self.system_id, active=False)
+
+        # Only once the read above has proved the panel reachable and free, so a retry
+        # never adds contention of its own.
+        if not self._capabilities_discovered:
+            await self.async_load_capabilities()
 
         self._schedule_for_state(status)
         return DaitemData(

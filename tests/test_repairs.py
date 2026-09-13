@@ -20,6 +20,7 @@ from custom_components.daitem.const import DOMAIN
 from custom_components.daitem.coordinator import SESSION_BUSY_ISSUE_THRESHOLD
 
 SESSION_BUSY_ISSUE = "session_busy_123456"
+ARM_MODES_ISSUE = "arm_modes_undiscovered_123456"
 
 
 async def test_occasional_session_busy_raises_nothing(
@@ -67,12 +68,33 @@ async def test_blocked_arm_mode_discovery_is_reported(
     assert await hass.config_entries.async_setup(other.entry_id)
     await hass.async_block_till_done()
 
-    issue = issue_registry.async_get_issue(DOMAIN, "arm_modes_undiscovered_123456")
+    issue = issue_registry.async_get_issue(DOMAIN, ARM_MODES_ISSUE)
     assert issue is not None
     assert issue.translation_key == "arm_modes_undiscovered"
+
+
+async def test_arm_mode_issue_clears_once_discovery_succeeds(
+    hass: HomeAssistant, mock_client: AsyncMock, issue_registry: ir.IssueRegistry
+) -> None:
+    """An issue that outlives the problem is worse than no issue at all."""
+    mock_client.system.capabilities.discovered = False
+    mock_client.system.capabilities.arm_modes.return_value = frozenset({ArmMode.AWAY})
+
+    other = MockConfigEntry(domain=DOMAIN, title="Annexe", data=ENTRY_DATA, unique_id="555")
+    other.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(other.entry_id)
+    await hass.async_block_till_done()
+    assert issue_registry.async_get_issue(DOMAIN, ARM_MODES_ISSUE) is not None
+
+    mock_client.system.capabilities.discovered = True
+    mock_client.system.capabilities.arm_modes.return_value = frozenset({ArmMode.AWAY, ArmMode.PRESENCE})
+    await other.runtime_data.async_refresh()
+    await hass.async_block_till_done()
+
+    assert issue_registry.async_get_issue(DOMAIN, ARM_MODES_ISSUE) is None
 
 
 async def test_complete_arm_mode_discovery_reports_nothing(
     hass: HomeAssistant, entry: MockConfigEntry, issue_registry: ir.IssueRegistry
 ) -> None:
-    assert issue_registry.async_get_issue(DOMAIN, "arm_modes_undiscovered_123456") is None
+    assert issue_registry.async_get_issue(DOMAIN, ARM_MODES_ISSUE) is None

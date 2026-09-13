@@ -116,9 +116,9 @@ async def test_away_only_after_blocked_discovery_warns(
 ) -> None:
     """Presence/night silently vanishing from the panel entity must not go unnoticed.
 
-    Regression: this degradation used to be permanent (until a reload) and completely
-    silent, because the coordinator's own `except DaitemError` never actually fires -
-    pydaitem's façade swallows discovery failures itself and returns away alone.
+    Regression: this degradation used to be completely silent, because the coordinator's
+    own `except DaitemError` never actually fires - pydaitem's façade swallows discovery
+    failures itself and returns away alone.
     """
     mock_client.system.capabilities.discovered = False
     mock_client.system.capabilities.arm_modes.return_value = frozenset({ArmMode.AWAY})
@@ -130,7 +130,46 @@ async def test_away_only_after_blocked_discovery_warns(
         await hass.async_block_till_done()
 
     assert "only away arming will be offered" in caplog.text
-    assert "reload" in caplog.text.lower()
+    assert "retried on the next cycles" in caplog.text
+
+
+async def test_blocked_discovery_recovers_without_a_reload(hass: HomeAssistant, mock_client: AsyncMock) -> None:
+    """The Home button must come back on its own once the panel is free again.
+
+    Regression: discovery ran once at setup and `supported_features` was frozen in the
+    entity constructor, so a panel busy for the one second setup took left the
+    installation on away-only arming until somebody reloaded the integration by hand.
+    """
+    mock_client.system.capabilities.discovered = False
+    mock_client.system.capabilities.arm_modes.return_value = frozenset({ArmMode.AWAY})
+
+    other = MockConfigEntry(domain=DOMAIN, title="Annexe", data=ENTRY_DATA, unique_id="999")
+    other.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(other.entry_id)
+    await hass.async_block_till_done()
+
+    features = hass.states.get("alarm_control_panel.alarm_annexe").attributes["supported_features"]
+    assert not features & AlarmControlPanelEntityFeature.ARM_HOME
+
+    mock_client.system.capabilities.discovered = True
+    mock_client.system.capabilities.arm_modes.return_value = frozenset({ArmMode.AWAY, ArmMode.PRESENCE})
+    await other.runtime_data.async_refresh()
+    await hass.async_block_till_done()
+
+    features = hass.states.get("alarm_control_panel.alarm_annexe").attributes["supported_features"]
+    assert features & AlarmControlPanelEntityFeature.ARM_HOME
+
+
+async def test_discovery_is_not_retried_once_it_has_succeeded(
+    hass: HomeAssistant, entry: MockConfigEntry, mock_client: AsyncMock
+) -> None:
+    """A retry on every cycle would be a pointless extra call on a working installation."""
+    calls_after_setup = mock_client.system.capabilities.arm_modes.await_count
+
+    await entry.runtime_data.async_refresh()
+    await hass.async_block_till_done()
+
+    assert mock_client.system.capabilities.arm_modes.await_count == calls_after_setup
 
 
 async def test_genuine_away_only_installation_does_not_warn(
