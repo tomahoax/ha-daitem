@@ -38,15 +38,28 @@ delays.
 
 ## Installation
 
-### Through HACS
+### Through HACS (recommended)
 
-Add this repository as a custom repository (category "Integration"), install "Daitem",
-then restart Home Assistant.
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=tomahoax&repository=ha-daitem&category=integration)
 
-### Manually
+Click the badge above, install "Daitem" from HACS, then restart Home Assistant.
 
-Copy `custom_components/daitem` into the `custom_components` folder of your configuration,
-then restart.
+<details>
+<summary>Manual HACS steps, if the badge does not work</summary>
+
+1. In Home Assistant, open HACS, then Integrations.
+2. Open the ⋮ menu (top right corner), then "Custom repositories".
+3. Repository: `https://github.com/tomahoax/ha-daitem`, category: "Integration". Add it.
+4. Search for "Daitem" in HACS, download it, then restart Home Assistant.
+
+</details>
+
+### Manually, without HACS
+
+1. Download the [latest release](https://github.com/tomahoax/ha-daitem/releases) archive.
+2. Extract `custom_components/daitem` into the `custom_components` folder of your
+   configuration.
+3. Restart Home Assistant.
 
 Home Assistant installs the `pydaitem` library automatically from PyPI, based on the
 `requirements` field of the manifest.
