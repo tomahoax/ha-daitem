@@ -24,6 +24,10 @@ class DaitemEntity(CoordinatorEntity[DaitemCoordinator]):
             translation_placeholders={"installation_name": coordinator.config_entry.title},
             model=inventory.central_type if inventory else None,
             serial_number=inventory.central_serial if inventory else None,
+            # Only the main software: the panel also reports a radio version and its
+            # transmission module a third, and two registry fields cannot hold three.
+            # The other two are sensors.
+            sw_version=inventory.software_version if inventory else None,
         )
 
     @property

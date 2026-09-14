@@ -21,6 +21,7 @@ PLATFORMS: list[Platform] = [
     Platform.ALARM_CONTROL_PANEL,
     Platform.BINARY_SENSOR,
     Platform.BUTTON,
+    Platform.SENSOR,
 ]
 
 
@@ -51,16 +52,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: DaitemConfigEntry) -> bo
 
     entry.runtime_data = coordinator
 
-    # Registered explicitly, and before the platforms, so the detector entities set up by
-    # binary_sensor can look up its device id for `via_device_id` without racing whichever
-    # platform would otherwise register it first.
-    dr.async_get(hass).async_get_or_create(
+    # Registered explicitly, and before the platforms, so the per-device entities can hang
+    # off it through `via_device_id` without racing whichever platform would otherwise
+    # register it first. Its id is kept on the coordinator rather than looked up again by
+    # each platform, so every platform declares the same parent.
+    panel_device = dr.async_get(hass).async_get_or_create(
         config_entry_id=entry.entry_id,
         identifiers={(DOMAIN, str(coordinator.system_id))},
         manufacturer="Daitem",
         translation_key="panel",
         translation_placeholders={"installation_name": entry.title},
     )
+    coordinator.panel_device_id = panel_device.id
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True

@@ -3,6 +3,26 @@
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and semantic
 versioning.
 
+## [Unreleased]
+
+### Added
+
+- Firmware versions of the panel: the main software on the device page, and the radio and
+  transmission module versions as hidden diagnostic sensors. Three values, two registry
+  fields, hence the split. They were in the inventory payload all along.
+- Remotes and keypads now appear as devices, hanging off the panel like the detectors. A
+  live panel reports no fault for them, so their inhibition sensor is what they carry.
+- An inhibition sensor per detector and control, visible by default. A neutralised
+  detector is a hole in the protection while the system is armed, so it is not hidden
+  behind a toggle like the faults are.
+- Group membership: a hidden sensor on each detector, and a `groups` attribute on the alarm
+  entity listing what each group contains, next to `active_groups`. The API gives numbers
+  and no names, so numbers is what is shown. Controls report no group.
+
+### Changed
+
+- Pins `pydaitem==0.2.0`, which is where the firmware parsing lives.
+
 ## [0.4.0] - 2026-09-14
 
 ### Added

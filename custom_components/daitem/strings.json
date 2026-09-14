@@ -38,11 +38,6 @@
     }
   },
   "entity": {
-    "button": {
-      "refresh": {
-        "name": "Refresh"
-      }
-    },
     "binary_sensor": {
       "main_power": {
         "name": "Main power supply"
@@ -73,6 +68,28 @@
       },
       "loop": {
         "name": "Loop fault"
+      },
+      "inhibited": {
+        "name": "Inhibited"
+      }
+    },
+    "button": {
+      "refresh": {
+        "name": "Refresh"
+      }
+    },
+    "sensor": {
+      "firmware_software": {
+        "name": "Main software"
+      },
+      "firmware_radio": {
+        "name": "Radio firmware"
+      },
+      "firmware_transmitter": {
+        "name": "Transmission module"
+      },
+      "group": {
+        "name": "Group"
       }
     }
   },

@@ -38,11 +38,6 @@
     }
   },
   "entity": {
-    "button": {
-      "refresh": {
-        "name": "Rafraîchir"
-      }
-    },
     "binary_sensor": {
       "main_power": {
         "name": "Alimentation principale"
@@ -73,6 +68,28 @@
       },
       "loop": {
         "name": "Défaut de boucle"
+      },
+      "inhibited": {
+        "name": "Inhibé"
+      }
+    },
+    "button": {
+      "refresh": {
+        "name": "Rafraîchir"
+      }
+    },
+    "sensor": {
+      "firmware_software": {
+        "name": "Logiciel principal"
+      },
+      "firmware_radio": {
+        "name": "Firmware radio"
+      },
+      "firmware_transmitter": {
+        "name": "Module de transmission"
+      },
+      "group": {
+        "name": "Groupe"
       }
     }
   },

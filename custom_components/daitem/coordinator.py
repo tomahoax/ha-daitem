@@ -91,6 +91,8 @@ class DaitemCoordinator(DataUpdateCoordinator[DaitemData]):
         )
         self.system = system
         self.arm_modes: frozenset[ArmMode] = frozenset({ArmMode.AWAY})
+        self.panel_device_id: str | None = None
+        """Registry id of the panel device, set by `async_setup_entry` before the platforms."""
         self._inventory_failed = False
         self._consecutive_session_busy = 0
         self._consecutive_failures = 0

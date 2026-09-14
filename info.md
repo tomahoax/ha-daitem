@@ -19,6 +19,10 @@ Daitem Secure mobile app, which can change without notice.
 - **Repairs entries** when the panel session stays held by another device, or when arming
   mode discovery was blocked at startup. Both clear themselves once the panel is reachable
   and free again.
+- **Inhibition sensor** on each detector and control, visible by default: a neutralised
+  detector is a hole in the protection while the system is armed.
+- **Remotes and keypads** as devices of their own, and the panel's three firmware versions.
+- **Group membership**, per detector and as a mapping on the alarm entity.
 - **Diagnostics download**, with credentials, the alarm code and the refresh token
   redacted, so a bug report can carry the raw payloads safely.
 - English and French throughout, entity names included.

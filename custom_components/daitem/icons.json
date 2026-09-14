@@ -60,11 +60,31 @@
         "state": {
           "on": "mdi:vector-polyline-remove"
         }
+      },
+      "inhibited": {
+        "default": "mdi:shield-check",
+        "state": {
+          "on": "mdi:shield-off-outline"
+        }
       }
     },
     "button": {
       "refresh": {
         "default": "mdi:refresh"
+      }
+    },
+    "sensor": {
+      "firmware_software": {
+        "default": "mdi:chip"
+      },
+      "firmware_radio": {
+        "default": "mdi:radio-tower"
+      },
+      "firmware_transmitter": {
+        "default": "mdi:router-wireless"
+      },
+      "group": {
+        "default": "mdi:home-group"
       }
     }
   }

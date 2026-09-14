@@ -1,11 +1,15 @@
-"""Fault binary sensors for the panel and its individual detectors.
+"""Binary sensors: faults on the panel and its devices, and detector inhibition.
 
 Important: the API exposes **no** live open/closed detector state, so no door or window
 contact can be created. What is available are the **faults** (power, tamper, transmission
-media, battery, radio, masking...), exposed here.
+media, battery, radio, masking...) and the inhibition flag, exposed here.
 
-Entities are built from the library's `Fault` enum, never from raw API keys, so a renamed
-field on the Daitem side is absorbed by the library alone.
+Fault entities are built from the library's `Fault` enum, never from raw API keys, so a
+renamed field on the Daitem side is absorbed by the library alone.
+
+Controls (remotes, keypads) get the same treatment as detectors, except that a live
+installation reports an empty `anomalies` block for them, so in practice their only entity
+is the inhibition one. That is enough to keep the device from being an empty shell.
 """
 
 from __future__ import annotations
@@ -21,15 +25,14 @@ from homeassistant.components.binary_sensor import (
 )
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
-from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.entity_registry import RegistryEntryHider
 from pydaitem import Device, Fault, Inventory
 
 from .const import DOMAIN, OPTION_FAULT_VISIBILITY_MIGRATED
 from .coordinator import DaitemConfigEntry, DaitemCoordinator
+from .device import DaitemDeviceEntity, device_key
 from .entity import DaitemEntity
 
 _LOGGER = logging.getLogger(__name__)
@@ -97,17 +100,16 @@ async def async_setup_entry(
 
     _migrate_fault_visibility(hass, entry, coordinator, inventory)
 
-    # __init__.py registers the panel device before forwarding to this platform, so this
-    # lookup cannot race it.
-    panel_device_id = dr.async_get_device_id_by_identifier(
-        hass, (DOMAIN, str(coordinator.system_id)), config_entry_id=entry.entry_id
-    )
     async_add_entities(
-        DaitemDetectorFault(coordinator, device, fault, device_class=device_class, panel_device_id=panel_device_id)
-        for device in inventory.sensors
+        DaitemDeviceFault(coordinator, device, fault, device_class=device_class)
+        for device in inventory.devices
         for fault, device_class in DETECTOR_FAULTS.items()
         if device.anomalies.has(fault) is not None
     )
+
+    # A control reports no fault of its own, so this is usually its only entity. Without
+    # it the device would carry none at all, and Home Assistant prunes those.
+    async_add_entities(DaitemDeviceInhibited(coordinator, device) for device in inventory.devices if device.inhibitable)
 
 
 def _migrate_fault_visibility(
@@ -135,11 +137,11 @@ def _migrate_fault_visibility(
         return
 
     registry = er.async_get(hass)
-    for device in inventory.sensors:
+    for device in inventory.devices:
         for fault in DETECTOR_FAULTS:
             if fault in DEFAULT_VISIBLE_DETECTOR_FAULTS:
                 continue
-            unique_id = f"{coordinator.system_id}_sensor_{device.index}_{fault.value}"
+            unique_id = f"{device_key(coordinator.system_id, device)}_{fault.value}"
             entity_id = registry.async_get_entity_id(BINARY_SENSOR_DOMAIN, DOMAIN, unique_id)
             if entity_id is None:
                 continue
@@ -176,8 +178,8 @@ class DaitemCentralFault(DaitemEntity, BinarySensorEntity):
         return data.inventory.central_anomalies.has(self._fault)
 
 
-class DaitemDetectorFault(DaitemEntity, BinarySensorEntity):
-    """A single fault reported by one detector, as its own Home Assistant device."""
+class DaitemDeviceFault(DaitemDeviceEntity, BinarySensorEntity):
+    """A single fault reported by one detector or control."""
 
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
@@ -188,32 +190,38 @@ class DaitemDetectorFault(DaitemEntity, BinarySensorEntity):
         fault: Fault,
         *,
         device_class: BinarySensorDeviceClass,
-        panel_device_id: str,
     ) -> None:
-        super().__init__(coordinator)
-        self._index = device.index
+        super().__init__(coordinator, device)
         self._fault = fault
         self._attr_entity_registry_visible_default = fault in DEFAULT_VISIBLE_DETECTOR_FAULTS
         self._attr_translation_key = fault.value
         self._attr_device_class = device_class
-        self._attr_unique_id = f"{coordinator.system_id}_sensor_{device.index}_{fault.value}"
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, f"{coordinator.system_id}_sensor_{device.index}")},
-            manufacturer="Daitem",
-            name=device.name or f"Detector {device.index}",
-            model=device.type or None,
-            serial_number=device.serial_number or None,
-            via_device_id=panel_device_id,
-        )
-
-    def _current_device(self) -> Device | None:
-        inventory = self.coordinator.data.inventory if self.coordinator.data else None
-        if inventory is None:
-            return None
-        return next((d for d in inventory.sensors if d.index == self._index), None)
+        self._attr_unique_id = f"{self.device_key}_{fault.value}"
 
     @property
     def is_on(self) -> bool | None:
         """Whether the fault is raised, or None while the inventory is unavailable."""
-        device = self._current_device()
+        device = self.current_device()
         return device.anomalies.has(self._fault) if device else None
+
+
+class DaitemDeviceInhibited(DaitemDeviceEntity, BinarySensorEntity):
+    """Whether a detector or control is deliberately neutralised.
+
+    Visible by default, unlike the faults: an inhibited detector is a hole in the
+    protection while the system is armed, and that is something to notice without going
+    looking for it.
+    """
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_device_class = BinarySensorDeviceClass.PROBLEM
+    _attr_translation_key = "inhibited"
+
+    def __init__(self, coordinator: DaitemCoordinator, device: Device) -> None:
+        super().__init__(coordinator, device)
+        self._attr_unique_id = f"{self.device_key}_inhibited"
+
+    @property
+    def is_on(self) -> bool | None:
+        device = self.current_device()
+        return device.inhibited if device else None

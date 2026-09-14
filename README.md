@@ -18,6 +18,10 @@ private API of the Daitem Secure mobile app.
 - **Repairs** entries when the panel session stays held by another device, or when arming
   mode discovery was blocked at startup. Both clear themselves once the panel is reachable
   and free again.
+- **Inhibition** sensor per device: a detector deliberately neutralised is visible without
+  going looking for it.
+- Remotes and keypads exposed as devices too, and the panel's firmware versions.
+- Group membership, as a sensor per detector and as a mapping on the alarm entity.
 - Diagnostics download, with credentials and codes redacted.
 - English and French throughout, entity names included.
 

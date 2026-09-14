@@ -48,21 +48,33 @@ def mock_status() -> SystemStatus:
     )
 
 
+#: Shapes taken from a live installation. Detector and control indices both start at 1 on
+#: purpose: they really do collide, so anything keyed on the index alone breaks here.
+INVENTORY_PAYLOAD = {
+    "central": {
+        "serialNumber": "SN-TEST",
+        "type": "INTRUSION",
+        "hasIO": True,
+        "anomalies": {"defaultMediaAlert": False, "mainPowerSupplyAlert": False},
+        "firmwareInfo": {
+            "firmwares": [
+                {"firmwareType": "SOFT", "currentVersion": {"releaseVersion": "6.4.13"}},
+                {"firmwareType": "RADIO", "currentVersion": {"releaseVersion": "15"}},
+            ]
+        },
+        "plug": {
+            "serialNumber": "SN-PLUG",
+            "firmwareInfo": {"firmwares": [{"firmwareType": "SOFT", "currentVersion": {"releaseVersion": "7.8.4"}}]},
+        },
+    },
+    "genericSensors": {"sensors": []},
+    "commands": [],
+}
+
+
 @pytest.fixture
 def mock_inventory() -> Inventory:
-    return Inventory.from_json(
-        {
-            "central": {
-                "serialNumber": "SN-TEST",
-                "type": "INTRUSION",
-                "hasIO": True,
-                "anomalies": {"defaultMediaAlert": False, "mainPowerSupplyAlert": False},
-                "plug": {"serialNumber": "SN-PLUG"},
-            },
-            "genericSensors": {"sensors": []},
-            "commands": [],
-        }
-    )
+    return Inventory.from_json(INVENTORY_PAYLOAD)
 
 
 @pytest.fixture
