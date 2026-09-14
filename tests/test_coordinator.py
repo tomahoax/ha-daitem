@@ -34,6 +34,8 @@ from custom_components.daitem.const import (
     CONF_MASTER_CODE,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
+    RETRY_ATTEMPTS,
+    RETRY_SCAN_INTERVAL,
 )
 from custom_components.daitem.tokens import CONF_REFRESH_TOKEN, ConfigEntryTokenStore
 
@@ -121,6 +123,70 @@ async def test_polling_speeds_up_while_arming(
     mock_client.system.read_status.return_value = SystemStatus.from_json({"systemState": "on", "groups": []})
     await coordinator.async_refresh()
     assert coordinator.update_interval == timedelta(seconds=DEFAULT_SCAN_INTERVAL)
+
+
+async def test_a_failed_cycle_retries_fast_then_recovers(
+    hass: HomeAssistant, entry: MockConfigEntry, mock_client: AsyncMock
+) -> None:
+    """A one-second glitch must not cost five minutes of a greyed-out alarm.
+
+    Home Assistant makes the entities unavailable on a failed cycle, so at the normal
+    interval the user sees the outage for a full cycle. Seen for real: a single HTTP 500
+    from the panel ("Unexpected null command response") among 765 successful reads.
+    """
+    coordinator = entry.runtime_data
+    mock_client.system.read_status.side_effect = DaitemError("mediator.sendcommand.answer.notparsed")
+    await coordinator.async_refresh()
+
+    assert coordinator.last_update_success is False
+    assert coordinator.update_interval == timedelta(seconds=RETRY_SCAN_INTERVAL)
+
+    mock_client.system.read_status.side_effect = None
+    await coordinator.async_refresh()
+
+    assert coordinator.last_update_success is True
+    assert coordinator.update_interval == timedelta(seconds=DEFAULT_SCAN_INTERVAL)
+
+
+async def test_a_lasting_outage_stops_retrying_fast(
+    hass: HomeAssistant, entry: MockConfigEntry, mock_client: AsyncMock
+) -> None:
+    """Past the retry budget the panel is unreachable, not glitching: stop hammering it."""
+    coordinator = entry.runtime_data
+    mock_client.system.read_status.side_effect = DaitemError("down")
+
+    for _ in range(RETRY_ATTEMPTS):
+        await coordinator.async_refresh()
+        assert coordinator.update_interval == timedelta(seconds=RETRY_SCAN_INTERVAL)
+
+    await coordinator.async_refresh()
+    assert coordinator.update_interval == timedelta(seconds=DEFAULT_SCAN_INTERVAL)
+
+
+async def test_a_busy_session_does_not_trigger_the_fast_retry(
+    hass: HomeAssistant, entry: MockConfigEntry, mock_client: AsyncMock
+) -> None:
+    """A busy session hands the last known state back, so there is nothing to recover."""
+    coordinator = entry.runtime_data
+    mock_client.system.read_status.side_effect = DaitemSessionBusyError("owner")
+    await coordinator.async_refresh()
+
+    assert coordinator.last_update_success is True
+    assert coordinator.update_interval == timedelta(seconds=DEFAULT_SCAN_INTERVAL)
+
+
+async def test_the_fast_retry_never_slows_an_arming_delay_down(
+    hass: HomeAssistant, entry: MockConfigEntry, mock_client: AsyncMock
+) -> None:
+    """The arming delay needs a five-second pace, and thirty would be a downgrade."""
+    coordinator = entry.runtime_data
+    mock_client.system.read_status.return_value = SystemStatus.from_json({"systemState": "tempo", "groups": []})
+    await coordinator.async_refresh()
+    assert coordinator.update_interval == timedelta(seconds=ARMING_SCAN_INTERVAL)
+
+    mock_client.system.read_status.side_effect = DaitemSessionBusyError("owner")
+    await coordinator.async_refresh()
+    assert coordinator.update_interval == timedelta(seconds=ARMING_SCAN_INTERVAL)
 
 
 async def test_away_only_after_blocked_discovery_warns(

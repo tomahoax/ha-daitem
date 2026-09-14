@@ -26,6 +26,12 @@ versioning.
 
 ### Fixed
 
+- A failed read cycle no longer greys the alarm out for a full five minutes. Home
+  Assistant marks the entities unavailable as soon as a cycle fails, so a one-second
+  glitch on the panel side cost a five-minute outage. Polling now drops to thirty seconds
+  for up to five attempts, then returns to the normal pace, whether it recovered or the
+  panel turned out to be properly unreachable. Seen for real: a single HTTP 500
+  ("Unexpected null command response") among 765 successful reads over three days.
 - Presence arming no longer disappears until a manual reload. Arming modes were read once
   at setup, and the alarm entity froze the modes it advertised at construction, so the
   panel only had to be busy for the second setup took to leave the installation on

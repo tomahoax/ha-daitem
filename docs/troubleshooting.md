@@ -23,8 +23,12 @@ permanently and lock the mobile app out.
 The entity goes unavailable when the coordinator has no usable state: either it has never
 completed a successful read, or a read cycle failed for a reason other than a busy session.
 
+A single failed cycle recovers on its own. Polling drops to thirty seconds for up to five
+attempts after a failure, so a passing glitch on the panel side clears in about a minute
+rather than lasting a full interval. Wait that long before doing anything.
+
 1. Reload the integration (Settings > Devices & services > Daitem > three-dot menu >
-   Reload). This forces an immediate cycle instead of waiting up to five minutes.
+   Reload). This forces an immediate cycle instead of waiting for the next one.
 2. Check Settings > System > Repairs. A session held by another device for several cycles
    in a row raises an entry there.
 3. If it persists, enable debug logging (below) and open an issue. Note that the first

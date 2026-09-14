@@ -13,6 +13,9 @@ The session strategy it relies on was validated by measurement:
 - **Delay tracking**: poll faster while an arming delay runs, then slow back down.
 - **Graceful degradation**: if another device holds the session, keep the last known state
   instead of marking entities unavailable.
+- **Fast retry**: a failed cycle does mark them unavailable, so poll every thirty seconds
+  for a short while afterwards rather than leaving the alarm greyed out for a full
+  interval over a glitch that lasted a second.
 """
 
 from __future__ import annotations
@@ -37,7 +40,13 @@ from pydaitem import (
     SystemStatus,
 )
 
-from .const import ARMING_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL, DOMAIN
+from .const import (
+    ARMING_SCAN_INTERVAL,
+    DEFAULT_SCAN_INTERVAL,
+    DOMAIN,
+    RETRY_ATTEMPTS,
+    RETRY_SCAN_INTERVAL,
+)
 from .repairs import async_set_arm_modes_issue, async_set_session_busy_issue
 
 _LOGGER = logging.getLogger(__name__)
@@ -84,6 +93,7 @@ class DaitemCoordinator(DataUpdateCoordinator[DaitemData]):
         self.arm_modes: frozenset[ArmMode] = frozenset({ArmMode.AWAY})
         self._inventory_failed = False
         self._consecutive_session_busy = 0
+        self._consecutive_failures = 0
         self._capabilities_discovered = False
 
     @property
@@ -139,16 +149,18 @@ class DaitemCoordinator(DataUpdateCoordinator[DaitemData]):
             if self._consecutive_session_busy >= SESSION_BUSY_ISSUE_THRESHOLD:
                 async_set_session_busy_issue(self.hass, self.system_id, active=True)
             if self.data is not None:
+                self._note_cycle_delivered_data()
                 return DaitemData(
                     status=self.data.status,
                     inventory=self.data.inventory,
                     last_success=self.data.last_success,
                     session_busy=True,
                 )
-            raise UpdateFailed(f"Panel session busy: {err}") from err
+            raise self._note_failed_cycle(f"Panel session busy: {err}") from err
         except DaitemError as err:
-            raise UpdateFailed(f"Error communicating with Daitem: {err}") from err
+            raise self._note_failed_cycle(f"Error communicating with Daitem: {err}") from err
 
+        self._note_cycle_delivered_data()
         if self._consecutive_session_busy:
             self._consecutive_session_busy = 0
             async_set_session_busy_issue(self.hass, self.system_id, active=False)
@@ -186,15 +198,43 @@ class DaitemCoordinator(DataUpdateCoordinator[DaitemData]):
             self._inventory_failed = False
         return inventory
 
-    def _schedule_for_state(self, status: SystemStatus) -> None:
-        """Speed polling up during an arming delay, slow it down once settled."""
-        wanted = ARMING_SCAN_INTERVAL if status.is_arming else DEFAULT_SCAN_INTERVAL
-        target = timedelta(seconds=wanted)
+    def _note_failed_cycle(self, message: str) -> UpdateFailed:
+        """Poll faster for a while after a failure, so the outage is a minute, not five.
+
+        Home Assistant makes the entities unavailable on a failed cycle, so at the normal
+        interval a one-second glitch on the panel side costs five minutes of a greyed-out
+        alarm. Retrying every thirty seconds recovers from that in about one.
+
+        Past `RETRY_ATTEMPTS` the panel is not glitching, it is unreachable, so the pace
+        returns to normal rather than hammering it for as long as the outage lasts.
+        """
+        self._consecutive_failures += 1
+        fast = self._consecutive_failures <= RETRY_ATTEMPTS
+        self._set_interval(RETRY_SCAN_INTERVAL if fast else DEFAULT_SCAN_INTERVAL)
+        return UpdateFailed(message)
+
+    def _note_cycle_delivered_data(self) -> None:
+        """Leave the retry pace behind as soon as a cycle produces something usable.
+
+        A busy session counts here too: it hands the last known state back rather than
+        failing, so nothing is waiting to be recovered by polling faster.
+        """
+        if not self._consecutive_failures:
+            return
+        self._consecutive_failures = 0
+        self._set_interval(DEFAULT_SCAN_INTERVAL)
+
+    def _set_interval(self, seconds: int) -> None:
+        target = timedelta(seconds=seconds)
         # Ignored below: mypy does not follow Home Assistant sources
         # (follow_imports = skip) so it cannot type update_interval.
         if self.update_interval != target:  # type: ignore[has-type]
-            _LOGGER.debug("Polling interval set to %ss", wanted)
+            _LOGGER.debug("Polling interval set to %ss", seconds)
             self.update_interval = target
+
+    def _schedule_for_state(self, status: SystemStatus) -> None:
+        """Speed polling up during an arming delay, slow it down once settled."""
+        self._set_interval(ARMING_SCAN_INTERVAL if status.is_arming else DEFAULT_SCAN_INTERVAL)
 
     async def async_apply_command_result(self, status: SystemStatus) -> None:
         """Publish the state returned by a command straight away.
