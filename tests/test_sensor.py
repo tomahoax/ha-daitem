@@ -105,3 +105,26 @@ async def test_the_alarm_entity_lists_what_each_group_contains(hass: HomeAssista
     # Keys are strings: a state attribute is serialised to JSON, where integer keys
     # would not survive anyway.
     assert groups == {"1": ["Front Door", "Garage Door"], "2": ["Kitchen Radar"]}
+
+
+async def test_the_group_mapping_reads_like_the_device_pages(hass: HomeAssistant, mock_client: AsyncMock) -> None:
+    """Ordered by number, and an unnamed detector called what its device page calls it.
+
+    Sorting the keys as strings would put group 10 before group 2, and taking `name` raw
+    would list an unnamed detector as a blank the reader cannot match to anything.
+    """
+    payload = copy.deepcopy(INVENTORY_PAYLOAD)
+    payload["genericSensors"]["sensors"] = [
+        {"index": 1, "name": "Cellar", "serialNumber": "SN-1", "group": 10, "anomalies": {}},
+        {"index": 2, "name": "", "serialNumber": "SN-2", "group": 2, "anomalies": {}},
+    ]
+    mock_client.system.read_inventory.return_value = Inventory.from_json(payload)
+
+    other = MockConfigEntry(domain=DOMAIN, title="Ferme", data=ENTRY_DATA, unique_id="ordering")
+    other.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(other.entry_id)
+    await hass.async_block_till_done()
+
+    groups = hass.states.get("alarm_control_panel.alarm_ferme").attributes["groups"]
+    assert list(groups) == ["2", "10"]
+    assert groups["2"] == ["Detector 2"]

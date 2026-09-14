@@ -89,7 +89,7 @@ async def async_setup_entry(
     # Detector entities depend on knowing which devices exist, so unlike the central
     # faults there is no fixed list to fall back on if the first inventory read failed.
     # The device list is assumed stable; reloading the integration picks up a recovery.
-    inventory = coordinator.data.inventory if coordinator.data else None
+    inventory = coordinator.inventory
     if inventory is None:
         _LOGGER.warning(
             "The device inventory was unreadable at startup, so no per-detector fault "
@@ -109,7 +109,15 @@ async def async_setup_entry(
 
     # A control reports no fault of its own, so this is usually its only entity. Without
     # it the device would carry none at all, and Home Assistant prunes those.
-    async_add_entities(DaitemDeviceInhibited(coordinator, device) for device in inventory.devices if device.inhibitable)
+    #
+    # `inhibited` counts as well as `inhibitable`: the library defaults both to False when
+    # the key is missing, and a device reporting itself inhibited without advertising that
+    # it can be would otherwise hide the very hole this entity exists to show.
+    async_add_entities(
+        DaitemDeviceInhibited(coordinator, device)
+        for device in inventory.devices
+        if device.inhibitable or device.inhibited
+    )
 
 
 def _migrate_fault_visibility(
@@ -172,10 +180,8 @@ class DaitemCentralFault(DaitemEntity, BinarySensorEntity):
     @property
     def is_on(self) -> bool | None:
         """Whether the fault is raised, or None while the inventory is unavailable."""
-        data = self.coordinator.data
-        if data is None or data.inventory is None:
-            return None
-        return data.inventory.central_anomalies.has(self._fault)
+        inventory = self.coordinator.inventory
+        return inventory.central_anomalies.has(self._fault) if inventory else None
 
 
 class DaitemDeviceFault(DaitemDeviceEntity, BinarySensorEntity):

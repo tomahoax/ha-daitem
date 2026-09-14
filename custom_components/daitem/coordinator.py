@@ -103,6 +103,11 @@ class DaitemCoordinator(DataUpdateCoordinator[DaitemData]):
         """Stable identifier for entity unique ids and the device registry."""
         return self.system.system_id
 
+    @property
+    def inventory(self) -> Inventory | None:
+        """Latest inventory, or None before the first cycle or while it is unreadable."""
+        return self.data.inventory if self.data else None
+
     async def async_load_capabilities(self) -> None:
         """Discover the arming modes this installation supports.
 

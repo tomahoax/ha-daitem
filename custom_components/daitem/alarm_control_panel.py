@@ -16,6 +16,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from pydaitem import ArmMode, DaitemError, DaitemSessionBusyError, Inventory, PanelState, SystemStatus
 
 from .coordinator import DaitemConfigEntry, DaitemCoordinator
+from .device import display_name
 from .entity import DaitemEntity
 
 #: Commands are serialised: the panel accepts one session at a time, so two concurrent
@@ -54,15 +55,18 @@ def _group_membership(inventory: Inventory | None) -> dict[str, list[str]]:
     Keyed by group number as a string, because state attributes are serialised to JSON and
     an integer key would not survive anyway. The API gives numbers and no names: no group
     name appears in the inventory, and none has ever been observed in the state payload.
+
+    Ordered by the number, not by the string it becomes, so group 10 comes after group 2
+    rather than before it.
     """
     if inventory is None:
         return {}
-    membership: dict[str, list[str]] = {}
+    membership: dict[int, list[str]] = {}
     for device in inventory.devices:
         if device.group is None:
             continue
-        membership.setdefault(str(device.group), []).append(device.name)
-    return {group: sorted(names) for group, names in sorted(membership.items())}
+        membership.setdefault(device.group, []).append(display_name(device))
+    return {str(group): sorted(names) for group, names in sorted(membership.items())}
 
 
 async def async_setup_entry(

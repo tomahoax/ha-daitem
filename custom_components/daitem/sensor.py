@@ -10,6 +10,7 @@ enough entities.
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 
@@ -22,6 +23,8 @@ from pydaitem import Device, Inventory
 from .coordinator import DaitemConfigEntry, DaitemCoordinator
 from .device import DaitemDeviceEntity
 from .entity import DaitemEntity
+
+_LOGGER = logging.getLogger(__name__)
 
 #: Read-only platform: the coordinator drives refreshes on its own.
 PARALLEL_UPDATES = 0
@@ -50,8 +53,16 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     coordinator = entry.runtime_data
-    inventory = coordinator.data.inventory if coordinator.data else None
+    inventory = coordinator.inventory
     if inventory is None:
+        # Everything on this platform is read out of the inventory, so an unreadable one at
+        # startup leaves the platform empty until a reload. Said out loud, because all of
+        # these entities are hidden by default: their absence is otherwise invisible.
+        _LOGGER.warning(
+            "The device inventory was unreadable at startup, so no firmware or group "
+            "sensor could be created. Reload the integration once the inventory is "
+            "readable to get them."
+        )
         return
 
     # Only for the versions this installation actually reports, so a panel that returns no
@@ -82,7 +93,7 @@ class DaitemFirmware(DaitemEntity, SensorEntity):
 
     @property
     def native_value(self) -> str | None:
-        inventory = self.coordinator.data.inventory if self.coordinator.data else None
+        inventory = self.coordinator.inventory
         return self._description.value(inventory) if inventory else None
 
 

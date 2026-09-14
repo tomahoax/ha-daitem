@@ -1,10 +1,10 @@
 # Development and test dependencies for the integration.
 # The runtime dependency (pydaitem) is declared in the manifest and installed by HA.
 
-# Floor matches the declared minimum (see CHANGELOG.md): a lower floor let a fresh
-# install resolve an older homeassistant lacking an API the integration actually uses
-# (device_registry.async_get_device_id_by_identifier), invisible locally because this
-# environment already had a newer version installed.
+# Floor matches the minimum declared in hacs.json, so the tests run against the oldest
+# version a user can install on. A lower floor once let a fresh install resolve an older
+# homeassistant lacking an API the integration used, invisible locally because this
+# environment already had a newer version installed. Keep the two in step.
 homeassistant>=2026.9.1
 pytest>=8.0
 pytest-asyncio>=0.24

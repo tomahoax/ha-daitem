@@ -28,6 +28,16 @@ def device_key(system_id: int, device: Device) -> str:
     return f"{system_id}_{device.kind}_{device.index}"
 
 
+def display_name(device: Device) -> str:
+    """What to call a device, falling back to its kind and index when unnamed.
+
+    Shared with the `groups` attribute on the alarm entity, so a detector the installation
+    left unnamed reads the same there as on its own device page rather than as a blank.
+    """
+    fallback = _FALLBACK_NAMES.get(device.kind, "Device")
+    return device.name or f"{fallback} {device.index}"
+
+
 class DaitemDeviceEntity(DaitemEntity):
     """Attaches the entity to its own detector or control device."""
 
@@ -36,11 +46,10 @@ class DaitemDeviceEntity(DaitemEntity):
         self._index = device.index
         self._kind = device.kind
         self.device_key = device_key(coordinator.system_id, device)
-        fallback = _FALLBACK_NAMES.get(device.kind, "Device")
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, self.device_key)},
             manufacturer="Daitem",
-            name=device.name or f"{fallback} {device.index}",
+            name=display_name(device),
             model=device.type or None,
             serial_number=device.serial_number or None,
             via_device_id=coordinator.panel_device_id,
@@ -48,7 +57,7 @@ class DaitemDeviceEntity(DaitemEntity):
 
     def current_device(self) -> Device | None:
         """The device as of the latest inventory, or None while it is unavailable."""
-        inventory = self.coordinator.data.inventory if self.coordinator.data else None
+        inventory = self.coordinator.inventory
         if inventory is None:
             return None
         return next(
