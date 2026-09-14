@@ -285,6 +285,34 @@ async def test_blocked_discovery_recovers_without_a_reload(hass: HomeAssistant, 
     assert features & AlarmControlPanelEntityFeature.ARM_HOME
 
 
+async def test_setup_discovers_the_arming_modes_exactly_once(
+    hass: HomeAssistant, entry: MockConfigEntry, mock_client: AsyncMock
+) -> None:
+    """Discovery opens a panel session, and the panel tolerates one at a time.
+
+    Regression seen in a real log: setup ran it twice, once from the first refresh and
+    once from an explicit call left behind, doubling the contention at the very moment it
+    is most likely to bite. It cost that installation its presence arming.
+    """
+    assert mock_client.system.capabilities.arm_modes.await_count == 1
+
+
+async def test_a_blocked_discovery_is_reported_once_not_twice(
+    hass: HomeAssistant, mock_client: AsyncMock, caplog: pytest.LogCaptureFixture
+) -> None:
+    """One failure, one warning: the duplicate attempt logged the same line twice."""
+    mock_client.system.capabilities.discovered = False
+    mock_client.system.capabilities.arm_modes.return_value = frozenset({ArmMode.AWAY})
+
+    other = MockConfigEntry(domain=DOMAIN, title="Annexe", data=ENTRY_DATA, unique_id="once")
+    other.add_to_hass(hass)
+    with caplog.at_level(logging.WARNING, logger="custom_components.daitem.coordinator"):
+        assert await hass.config_entries.async_setup(other.entry_id)
+        await hass.async_block_till_done()
+
+    assert caplog.text.count("only away arming will be offered") == 1
+
+
 async def test_discovery_is_not_retried_once_it_has_succeeded(
     hass: HomeAssistant, entry: MockConfigEntry, mock_client: AsyncMock
 ) -> None:

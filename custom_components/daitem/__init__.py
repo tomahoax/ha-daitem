@@ -42,9 +42,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: DaitemConfigEntry) -> bo
     system = DaitemSystem(client, entry.data[CONF_SYSTEM_ID], entry.data[CONF_MASTER_CODE])
     coordinator = DaitemCoordinator(hass, entry, system)
 
+    # Arming mode discovery is not called here: the first refresh runs it itself, and only
+    # once the state read has proved the panel free. Calling it again would open a second
+    # session against a panel that tolerates one, at the very moment contention is most
+    # likely, which is what used to cost the installation its presence arming.
     try:
         await coordinator.async_config_entry_first_refresh()
-        await coordinator.async_load_capabilities()
     except DaitemAuthError as err:
         raise ConfigEntryAuthFailed(str(err)) from err
     except DaitemError as err:

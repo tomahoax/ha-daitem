@@ -3,6 +3,17 @@
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and semantic
 versioning.
 
+## [0.5.1] - 2026-09-14
+
+### Fixed
+
+- Setup no longer discovers the arming modes twice. The first refresh already runs
+  discovery, and an explicit second call was left behind when discovery gained its retry,
+  so every startup opened two panel sessions instead of one. The panel tolerates one at a
+  time, so this doubled the contention at the moment it is most likely to bite, and a
+  blocked discovery is exactly what leaves an installation on away-only arming. Seen in a
+  real log, twice in the same second.
+
 ## [0.5.0] - 2026-09-14
 
 ### Added
