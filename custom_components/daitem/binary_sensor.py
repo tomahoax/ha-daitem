@@ -38,25 +38,29 @@ _LOGGER = logging.getLogger(__name__)
 PARALLEL_UPDATES = 0
 
 #: Faults the panel itself reports, with the matching Home Assistant device class.
-CENTRAL_FAULTS: dict[Fault, tuple[str, BinarySensorDeviceClass]] = {
-    Fault.MAIN_POWER: ("Main power supply", BinarySensorDeviceClass.PROBLEM),
-    Fault.BACKUP_POWER: ("Backup power supply", BinarySensorDeviceClass.PROBLEM),
-    Fault.TRANSMISSION_MEDIA: ("Transmission media", BinarySensorDeviceClass.PROBLEM),
-    Fault.TAMPER_MECHANICAL: ("Mechanical tamper", BinarySensorDeviceClass.TAMPER),
-    Fault.TAMPER_WIRED: ("Wired tamper", BinarySensorDeviceClass.TAMPER),
+#:
+#: Names and icons are not here: both are keyed on `fault.value` in `strings.json` and
+#: `icons.json`, which is what gives each fault its own translated label and its own icon
+#: instead of the single generic one the device class would produce for all of them.
+CENTRAL_FAULTS: dict[Fault, BinarySensorDeviceClass] = {
+    Fault.MAIN_POWER: BinarySensorDeviceClass.PROBLEM,
+    Fault.BACKUP_POWER: BinarySensorDeviceClass.PROBLEM,
+    Fault.TRANSMISSION_MEDIA: BinarySensorDeviceClass.PROBLEM,
+    Fault.TAMPER_MECHANICAL: BinarySensorDeviceClass.TAMPER,
+    Fault.TAMPER_WIRED: BinarySensorDeviceClass.TAMPER,
 }
 
 #: Faults an individual detector may report. Only created for the anomaly keys a given
 #: device actually exposes, since detector types vary (a door contact does not report the
 #: same anomalies as a smoke head).
-DETECTOR_FAULTS: dict[Fault, tuple[str, BinarySensorDeviceClass]] = {
-    Fault.BATTERY: ("Battery", BinarySensorDeviceClass.BATTERY),
-    Fault.RADIO: ("Radio", BinarySensorDeviceClass.PROBLEM),
-    Fault.MASKING: ("Masking", BinarySensorDeviceClass.TAMPER),
-    Fault.TAMPER_MECHANICAL: ("Mechanical tamper", BinarySensorDeviceClass.TAMPER),
-    Fault.TAMPER_WIRED: ("Wired tamper", BinarySensorDeviceClass.TAMPER),
-    Fault.SENSOR: ("Sensor fault", BinarySensorDeviceClass.PROBLEM),
-    Fault.LOOP: ("Loop fault", BinarySensorDeviceClass.PROBLEM),
+DETECTOR_FAULTS: dict[Fault, BinarySensorDeviceClass] = {
+    Fault.BATTERY: BinarySensorDeviceClass.BATTERY,
+    Fault.RADIO: BinarySensorDeviceClass.PROBLEM,
+    Fault.MASKING: BinarySensorDeviceClass.TAMPER,
+    Fault.TAMPER_MECHANICAL: BinarySensorDeviceClass.TAMPER,
+    Fault.TAMPER_WIRED: BinarySensorDeviceClass.TAMPER,
+    Fault.SENSOR: BinarySensorDeviceClass.PROBLEM,
+    Fault.LOOP: BinarySensorDeviceClass.PROBLEM,
 }
 
 #: Only these are visible out of the box. A detector typically reports six faults, so a
@@ -76,8 +80,7 @@ async def async_setup_entry(
     # payload: a transient inventory failure at startup must not permanently deprive the
     # user of fault reporting. A fault the panel does not report simply stays unknown.
     async_add_entities(
-        DaitemCentralFault(coordinator, fault, label, device_class)
-        for fault, (label, device_class) in CENTRAL_FAULTS.items()
+        DaitemCentralFault(coordinator, fault, device_class) for fault, device_class in CENTRAL_FAULTS.items()
     )
 
     # Detector entities depend on knowing which devices exist, so unlike the central
@@ -100,11 +103,9 @@ async def async_setup_entry(
         hass, (DOMAIN, str(coordinator.system_id)), config_entry_id=entry.entry_id
     )
     async_add_entities(
-        DaitemDetectorFault(
-            coordinator, device, fault, label=label, device_class=device_class, panel_device_id=panel_device_id
-        )
+        DaitemDetectorFault(coordinator, device, fault, device_class=device_class, panel_device_id=panel_device_id)
         for device in inventory.sensors
-        for fault, (label, device_class) in DETECTOR_FAULTS.items()
+        for fault, device_class in DETECTOR_FAULTS.items()
         if device.anomalies.has(fault) is not None
     )
 
@@ -158,12 +159,11 @@ class DaitemCentralFault(DaitemEntity, BinarySensorEntity):
         self,
         coordinator: DaitemCoordinator,
         fault: Fault,
-        label: str,
         device_class: BinarySensorDeviceClass,
     ) -> None:
         super().__init__(coordinator)
         self._fault = fault
-        self._attr_name = label
+        self._attr_translation_key = fault.value
         self._attr_device_class = device_class
         self._attr_unique_id = f"{coordinator.system_id}_central_{fault.value}"
 
@@ -187,7 +187,6 @@ class DaitemDetectorFault(DaitemEntity, BinarySensorEntity):
         device: Device,
         fault: Fault,
         *,
-        label: str,
         device_class: BinarySensorDeviceClass,
         panel_device_id: str,
     ) -> None:
@@ -195,7 +194,7 @@ class DaitemDetectorFault(DaitemEntity, BinarySensorEntity):
         self._index = device.index
         self._fault = fault
         self._attr_entity_registry_visible_default = fault in DEFAULT_VISIBLE_DETECTOR_FAULTS
-        self._attr_name = label
+        self._attr_translation_key = fault.value
         self._attr_device_class = device_class
         self._attr_unique_id = f"{coordinator.system_id}_sensor_{device.index}_{fault.value}"
         self._attr_device_info = DeviceInfo(

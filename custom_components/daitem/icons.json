@@ -1,5 +1,67 @@
 {
   "entity": {
+    "binary_sensor": {
+      "main_power": {
+        "default": "mdi:power-plug",
+        "state": {
+          "on": "mdi:power-plug-off"
+        }
+      },
+      "backup_power": {
+        "default": "mdi:battery",
+        "state": {
+          "on": "mdi:battery-alert"
+        }
+      },
+      "transmission_media": {
+        "default": "mdi:transmission-tower",
+        "state": {
+          "on": "mdi:transmission-tower-off"
+        }
+      },
+      "tamper_mechanical": {
+        "default": "mdi:shield-home",
+        "state": {
+          "on": "mdi:shield-off"
+        }
+      },
+      "tamper_wired": {
+        "default": "mdi:cable-data",
+        "state": {
+          "on": "mdi:lan-disconnect"
+        }
+      },
+      "battery": {
+        "default": "mdi:battery",
+        "state": {
+          "on": "mdi:battery-alert"
+        }
+      },
+      "radio": {
+        "default": "mdi:access-point",
+        "state": {
+          "on": "mdi:access-point-off"
+        }
+      },
+      "masking": {
+        "default": "mdi:eye",
+        "state": {
+          "on": "mdi:eye-off"
+        }
+      },
+      "sensor": {
+        "default": "mdi:motion-sensor",
+        "state": {
+          "on": "mdi:motion-sensor-off"
+        }
+      },
+      "loop": {
+        "default": "mdi:vector-polyline",
+        "state": {
+          "on": "mdi:vector-polyline-remove"
+        }
+      }
+    },
     "button": {
       "refresh": {
         "default": "mdi:refresh"

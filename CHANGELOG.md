@@ -5,8 +5,20 @@ versioning.
 
 ## [Unreleased]
 
+### Added
+
+- Each fault sensor now has its own icon, switching between a healthy and a raised variant:
+  a plug that unplugs, a shield that opens, an eye that closes. They used to share the one
+  generic icon Home Assistant derives from the device class, which made the panel page a
+  column of identical dots.
+
 ### Changed
 
+- Fault sensors are translated. They carried a hardcoded English name, which is also why
+  they stayed in English on a French installation, and it is what prevented them from
+  having an icon of their own: both are keyed on the translation key they now have. Names
+  update on the next reload. Existing entity ids do not change, but a fresh installation
+  in French will derive them from the French names.
 - The manual refresh button moved from the diagnostic section of the device page to the
   controls: pressing it acts on the panel rather than reporting on it. It stays hidden by
   default. Home Assistant reapplies the section on reload, so existing installations move

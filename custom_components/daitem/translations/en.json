@@ -42,6 +42,38 @@
       "refresh": {
         "name": "Refresh"
       }
+    },
+    "binary_sensor": {
+      "main_power": {
+        "name": "Main power supply"
+      },
+      "backup_power": {
+        "name": "Backup power supply"
+      },
+      "transmission_media": {
+        "name": "Transmission media"
+      },
+      "tamper_mechanical": {
+        "name": "Mechanical tamper"
+      },
+      "tamper_wired": {
+        "name": "Wired tamper"
+      },
+      "battery": {
+        "name": "Battery"
+      },
+      "radio": {
+        "name": "Radio"
+      },
+      "masking": {
+        "name": "Masking"
+      },
+      "sensor": {
+        "name": "Sensor fault"
+      },
+      "loop": {
+        "name": "Loop fault"
+      }
     }
   },
   "device": {

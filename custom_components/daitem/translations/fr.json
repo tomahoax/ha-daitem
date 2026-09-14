@@ -42,6 +42,38 @@
       "refresh": {
         "name": "Rafraîchir"
       }
+    },
+    "binary_sensor": {
+      "main_power": {
+        "name": "Alimentation principale"
+      },
+      "backup_power": {
+        "name": "Alimentation de secours"
+      },
+      "transmission_media": {
+        "name": "Média de transmission"
+      },
+      "tamper_mechanical": {
+        "name": "Autoprotection mécanique"
+      },
+      "tamper_wired": {
+        "name": "Autoprotection filaire"
+      },
+      "battery": {
+        "name": "Pile"
+      },
+      "radio": {
+        "name": "Liaison radio"
+      },
+      "masking": {
+        "name": "Masquage"
+      },
+      "sensor": {
+        "name": "Défaut capteur"
+      },
+      "loop": {
+        "name": "Défaut de boucle"
+      }
     }
   },
   "device": {

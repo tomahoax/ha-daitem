@@ -57,6 +57,18 @@ async def test_panel_device_name_is_localized(
     assert device.name == "Alarm - Home"
 
 
+async def test_fault_sensor_names_come_from_the_translations(hass: HomeAssistant, entry: MockConfigEntry) -> None:
+    """Fault sensors are named by translation key, which is also what gives them an icon.
+
+    Worth proving rather than deducing: resolution depends on Home Assistant loading the
+    platform translations asynchronously, and a key missing from `strings.json` produces a
+    nameless entity rather than an error.
+    """
+    state = hass.states.get("binary_sensor.alarm_home_main_power_supply")
+    assert state is not None
+    assert state.attributes["friendly_name"] == "Alarm - Home Main power supply"
+
+
 async def test_session_busy_keeps_last_known_state(
     hass: HomeAssistant, entry: MockConfigEntry, mock_client: AsyncMock
 ) -> None:

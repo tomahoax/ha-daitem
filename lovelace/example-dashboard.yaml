@@ -4,7 +4,14 @@
 # comes from the panel device name, so an installation named "La Chapelle" gives
 # `alarm_control_panel.alarm_la_chapelle`.
 #
+# The ids below are those of an English installation. Home Assistant derives entity ids
+# from the translated entity name, so a fresh install in another language names them in
+# that language (`binary_sensor.alarme_la_chapelle_alimentation_principale` in French).
+#
 # Settings > Devices & services > Daitem > your installation lists every entity id.
+#
+# Fault sensors carry their own translated name and icon, so no `name:` override is needed
+# on their rows: adding one would replace the translation with a fixed string.
 
 type: vertical-stack
 cards:
@@ -44,23 +51,19 @@ cards:
         attribute: active_groups
         name: Active groups
       - entity: binary_sensor.alarm_home_main_power_supply
-        name: Main power supply
       - entity: binary_sensor.alarm_home_backup_power_supply
-        name: Backup power supply
       - entity: binary_sensor.alarm_home_transmission_media
-        name: Transmission media
       - entity: binary_sensor.alarm_home_mechanical_tamper
-        name: Mechanical tamper
+      - entity: binary_sensor.alarm_home_wired_tamper
       - entity: button.alarm_home_refresh
-        name: Refresh now
 
   # One row per detector. Battery and radio are the two fault sensors visible by default;
-  # the others exist but are hidden, and can be added here by entity id.
+  # the others exist but are hidden, and can be added here by entity id. Each row already
+  # reads "Front Door Battery": the detector name comes from the device, the fault name
+  # from the translations.
   - type: entities
     title: Detectors
     show_header_toggle: false
     entities:
       - entity: binary_sensor.REPLACE_ME_battery
-        name: Front door battery
       - entity: binary_sensor.REPLACE_ME_radio
-        name: Front door radio
