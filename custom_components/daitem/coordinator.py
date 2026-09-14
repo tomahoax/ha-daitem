@@ -149,7 +149,7 @@ class DaitemCoordinator(DataUpdateCoordinator[DaitemData]):
             if self._consecutive_session_busy >= SESSION_BUSY_ISSUE_THRESHOLD:
                 async_set_session_busy_issue(self.hass, self.system_id, active=True)
             if self.data is not None:
-                self._note_cycle_delivered_data()
+                self._note_cycle_delivered_data(self.data.status)
                 return DaitemData(
                     status=self.data.status,
                     inventory=self.data.inventory,
@@ -160,7 +160,7 @@ class DaitemCoordinator(DataUpdateCoordinator[DaitemData]):
         except DaitemError as err:
             raise self._note_failed_cycle(f"Error communicating with Daitem: {err}") from err
 
-        self._note_cycle_delivered_data()
+        self._note_cycle_delivered_data(status)
         if self._consecutive_session_busy:
             self._consecutive_session_busy = 0
             async_set_session_busy_issue(self.hass, self.system_id, active=False)
@@ -170,7 +170,6 @@ class DaitemCoordinator(DataUpdateCoordinator[DaitemData]):
         if not self._capabilities_discovered:
             await self.async_load_capabilities()
 
-        self._schedule_for_state(status)
         return DaitemData(
             status=status,
             inventory=await self._read_inventory(),
@@ -207,22 +206,29 @@ class DaitemCoordinator(DataUpdateCoordinator[DaitemData]):
 
         Past `RETRY_ATTEMPTS` the panel is not glitching, it is unreachable, so the pace
         returns to normal rather than hammering it for as long as the outage lasts.
+
+        Thirty seconds is applied even mid-arming, where it is slower than the five-second
+        arming pace. That is the deliberate trade: the entity is unavailable either way,
+        and polling a panel that just failed every five seconds buys little. The arming
+        pace is restored by the first cycle that delivers a state.
         """
         self._consecutive_failures += 1
         fast = self._consecutive_failures <= RETRY_ATTEMPTS
         self._set_interval(RETRY_SCAN_INTERVAL if fast else DEFAULT_SCAN_INTERVAL)
         return UpdateFailed(message)
 
-    def _note_cycle_delivered_data(self) -> None:
+    def _note_cycle_delivered_data(self, status: SystemStatus) -> None:
         """Leave the retry pace behind as soon as a cycle produces something usable.
 
         A busy session counts here too: it hands the last known state back rather than
         failing, so nothing is waiting to be recovered by polling faster.
+
+        The pace returns to whatever the delivered state calls for, not to the normal
+        interval: five seconds while an arming delay runs. Falling back to five minutes
+        there would freeze the alarm on "arming" until long after the delay had settled.
         """
-        if not self._consecutive_failures:
-            return
         self._consecutive_failures = 0
-        self._set_interval(DEFAULT_SCAN_INTERVAL)
+        self._schedule_for_state(status)
 
     def _set_interval(self, seconds: int) -> None:
         target = timedelta(seconds=seconds)
@@ -240,10 +246,11 @@ class DaitemCoordinator(DataUpdateCoordinator[DaitemData]):
         """Publish the state returned by a command straight away.
 
         Command responses already carry the full state, so there is no need to wait for
-        the next cycle to refresh the UI.
+        the next cycle to refresh the UI. A command only gets that far once the panel has
+        answered, which also settles any run of failed cycles behind it.
         """
         _LOGGER.debug("Publishing the state returned by the command: %s", status.state)
-        self._schedule_for_state(status)
+        self._note_cycle_delivered_data(status)
         self.async_set_updated_data(
             DaitemData(
                 status=status,
