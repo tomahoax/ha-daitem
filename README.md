@@ -12,11 +12,14 @@ private API of the Daitem Secure mobile app.
 
 - `alarm_control_panel` entity: full arming, "presence" partial arming, disarming.
 - **Fault** sensors on the panel (power supply, tamper, transmission media) and on each
-  detector (battery, radio, masking, tamper).
-- Manual refresh button, hidden by default.
+  detector (battery, radio, masking, tamper). Each has its own icon, which switches when
+  the fault is raised, so a problem is visible at a glance.
+- Manual refresh button, with the controls, hidden by default.
 - **Repairs** entries when the panel session stays held by another device, or when arming
-  mode discovery was blocked at startup.
+  mode discovery was blocked at startup. Both clear themselves once the panel is reachable
+  and free again.
 - Diagnostics download, with credentials and codes redacted.
+- English and French throughout, entity names included.
 
 ## Limitations, worth reading before installing
 
@@ -34,8 +37,10 @@ while the system is armed.
 
 **Five-minute latency by default.** An alarm trigger only reaches Home Assistant on the
 next cycle. The interval is not a comfort setting: shortening it would hold the session
-permanently and lock out your mobile app. Polling speeds up automatically during arming
-delays.
+permanently and lock out your mobile app. Polling does speed up on its own in the two
+cases where waiting five minutes would be unreasonable: during an arming delay, and after
+a failed read, so a passing glitch on the panel side clears in about a minute instead of
+leaving the alarm greyed out for a full cycle.
 
 **No history.** Reading it is owner-only; a restricted account is refused.
 
@@ -78,6 +83,11 @@ restricted user has their own.
 Creating a **dedicated secondary account** for Home Assistant in the Daitem app is
 recommended. It does not avoid the session conflict, but it makes actions attributable:
 they appear in the panel logbook under that account's code, distinct from yours.
+
+Entity ids are derived from the entity names, which are translated, so a Home Assistant
+running in French names them in French (`binary_sensor.alarme_la_chapelle_pile`). The
+examples in this repository use the English ids. Settings > Devices & services > Daitem >
+your installation lists the real ones.
 
 ## State mapping
 

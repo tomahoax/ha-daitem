@@ -37,7 +37,8 @@ it does without Home Assistant.
 - The list of installations on the account, and the chosen installation's state.
 - The device inventory: detectors and controls, with their name, serial number, group,
   inhibition status and faults.
-- The arming presets defined on the installation, read once at setup.
+- The arming presets defined on the installation, read at setup and retried on later
+  polling cycles until the read succeeds.
 
 The event history is not read: it is owner-only, and the account recommended here is a
 restricted one.

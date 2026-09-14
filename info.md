@@ -13,11 +13,15 @@ Daitem Secure mobile app, which can change without notice.
   exposed under a guessed "night" or "vacation" label.
 - **Fault sensors** on the panel (power supply, tamper, transmission media) and on each
   detector (battery, radio, masking, tamper). Battery and radio are visible by default, the
-  rest are created but hidden to keep the entity list readable.
-- **Manual refresh button**, hidden by default.
+  rest are created but hidden to keep the entity list readable. Each has its own icon,
+  which switches when the fault is raised.
+- **Manual refresh button**, with the controls, hidden by default.
 - **Repairs entries** when the panel session stays held by another device, or when arming
-  mode discovery was blocked at startup.
-- English and French translations.
+  mode discovery was blocked at startup. Both clear themselves once the panel is reachable
+  and free again.
+- **Diagnostics download**, with credentials, the alarm code and the refresh token
+  redacted, so a bug report can carry the raw payloads safely.
+- English and French throughout, entity names included.
 
 ## Setup
 
@@ -41,7 +45,9 @@ last known state rather than going unavailable.
 
 **No open/closed state per detector.** The API exposes faults only, not contacts.
 
-**Five-minute latency by default**, faster during an arming delay.
+**Five-minute latency by default.** Polling speeds up on its own during an arming delay,
+and after a failed read so a passing glitch clears in about a minute rather than leaving
+the alarm greyed out for a full cycle.
 
 ## Documentation
 
