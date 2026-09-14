@@ -3,7 +3,7 @@
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and semantic
 versioning.
 
-## [Unreleased]
+## [0.5.0] - 2026-09-14
 
 ### Added
 
@@ -28,6 +28,13 @@ versioning.
   fresh installation derives them from the new name, so the dashboard example moved with
   it.
 - Pins `pydaitem==0.2.0`, which is where the firmware parsing lives.
+
+### Fixed
+
+- The panel device page no longer loses its model and serial number when the integration
+  restarts on a cycle where the inventory could not be read. Home Assistant treats a device
+  field passed as null as "clear it", so a single bad read wiped what the registry already
+  held, and it stayed wiped until a reload got a good one.
 
 ## [0.4.0] - 2026-09-14
 
