@@ -89,9 +89,10 @@ recommended. It does not avoid the session conflict, but it makes actions attrib
 they appear in the panel logbook under that account's code, distinct from yours.
 
 Entity ids are derived from the entity names, which are translated, so a Home Assistant
-running in French names them in French (`binary_sensor.alarme_la_chapelle_pile`). The
-examples in this repository use the English ids. Settings > Devices & services > Daitem >
-your installation lists the real ones.
+running in French names them in French
+(`binary_sensor.centrale_alarme_la_chapelle_alimentation_principale`). The examples in
+this repository use the English ids. Settings > Devices & services > Daitem > your
+installation lists the real ones.
 
 ## State mapping
 

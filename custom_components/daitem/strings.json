@@ -95,7 +95,7 @@
   },
   "device": {
     "panel": {
-      "name": "Alarm - {installation_name}"
+      "name": "Alarm panel - {installation_name}"
     }
   },
   "issues": {

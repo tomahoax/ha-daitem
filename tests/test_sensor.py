@@ -16,9 +16,9 @@ from conftest import ENTRY_DATA, INVENTORY_PAYLOAD
 from custom_components.daitem.const import DOMAIN
 
 FIRMWARE_ENTITIES = {
-    "sensor.alarm_home_main_software": "6.4.13",
-    "sensor.alarm_home_radio_firmware": "15",
-    "sensor.alarm_home_transmission_module": "7.8.4",
+    "sensor.alarm_panel_home_main_software": "6.4.13",
+    "sensor.alarm_panel_home_radio_firmware": "15",
+    "sensor.alarm_panel_home_transmission_module": "7.8.4",
 }
 
 
@@ -64,8 +64,8 @@ async def test_a_panel_reporting_no_firmware_gets_no_sensors(hass: HomeAssistant
     assert await hass.config_entries.async_setup(other.entry_id)
     await hass.async_block_till_done()
 
-    assert hass.states.get("sensor.alarm_annexe_main_software") is None
-    assert hass.states.get("sensor.alarm_annexe_radio_firmware") is None
+    assert hass.states.get("sensor.alarm_panel_annexe_main_software") is None
+    assert hass.states.get("sensor.alarm_panel_annexe_radio_firmware") is None
 
 
 async def test_only_detectors_carry_a_group(hass: HomeAssistant, mock_client: AsyncMock) -> None:
@@ -101,7 +101,7 @@ async def test_the_alarm_entity_lists_what_each_group_contains(hass: HomeAssista
     assert await hass.config_entries.async_setup(other.entry_id)
     await hass.async_block_till_done()
 
-    groups = hass.states.get("alarm_control_panel.alarm_mas").attributes["groups"]
+    groups = hass.states.get("alarm_control_panel.alarm_panel_mas").attributes["groups"]
     # Keys are strings: a state attribute is serialised to JSON, where integer keys
     # would not survive anyway.
     assert groups == {"1": ["Front Door", "Garage Door"], "2": ["Kitchen Radar"]}
@@ -125,6 +125,6 @@ async def test_the_group_mapping_reads_like_the_device_pages(hass: HomeAssistant
     assert await hass.config_entries.async_setup(other.entry_id)
     await hass.async_block_till_done()
 
-    groups = hass.states.get("alarm_control_panel.alarm_ferme").attributes["groups"]
+    groups = hass.states.get("alarm_control_panel.alarm_panel_ferme").attributes["groups"]
     assert list(groups) == ["2", "10"]
     assert groups["2"] == ["Detector 2"]

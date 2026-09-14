@@ -21,6 +21,12 @@ versioning.
 
 ### Changed
 
+- The panel device is now named "Alarm panel - {installation name}", "Centrale alarme -
+  {nom}" in French, instead of "Alarm - {installation name}". "Alarm" read as the whole
+  installation as easily as the box that drives it, and the app calls that box the
+  centrale. Existing entity ids do not change, Home Assistant fixes them at creation. A
+  fresh installation derives them from the new name, so the dashboard example moved with
+  it.
 - Pins `pydaitem==0.2.0`, which is where the firmware parsing lives.
 
 ## [0.4.0] - 2026-09-14

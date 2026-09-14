@@ -17,7 +17,7 @@ from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 #: Also referenced by `lovelace/example-dashboard.yaml`, so a rename breaks the example.
-ENTITY_ID = "button.alarm_home_refresh"
+ENTITY_ID = "button.alarm_panel_home_refresh"
 
 
 @pytest.fixture

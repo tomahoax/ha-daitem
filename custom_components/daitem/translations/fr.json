@@ -95,7 +95,7 @@
   },
   "device": {
     "panel": {
-      "name": "Alarme - {installation_name}"
+      "name": "Centrale alarme - {installation_name}"
     }
   },
   "issues": {

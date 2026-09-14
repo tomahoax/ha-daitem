@@ -41,7 +41,7 @@ from custom_components.daitem.tokens import CONF_REFRESH_TOKEN, ConfigEntryToken
 
 
 async def test_setup_creates_alarm_entity(hass: HomeAssistant, entry: MockConfigEntry) -> None:
-    state = hass.states.get("alarm_control_panel.alarm_home")
+    state = hass.states.get("alarm_control_panel.alarm_panel_home")
     assert state is not None
     assert state.state == "disarmed"
 
@@ -51,12 +51,13 @@ async def test_panel_device_name_is_localized(
 ) -> None:
     """The panel must stand out from the plain detector devices in the device list.
 
-    Named "Alarm - {installation name}" (translated), rather than just the installation
-    name, so it is not mistaken for one more device among the fault sensors.
+    Named "Alarm panel - {installation name}" (translated), rather than just the
+    installation name, so it is not mistaken for one more device among the fault sensors
+    and so "panel" says which box it is rather than naming the whole installation.
     """
     device = device_registry.async_get_device_by_identifier((DOMAIN, "123456"), entry.entry_id)
     assert device is not None
-    assert device.name == "Alarm - Home"
+    assert device.name == "Alarm panel - Home"
 
 
 async def test_fault_sensor_names_come_from_the_translations(hass: HomeAssistant, entry: MockConfigEntry) -> None:
@@ -66,9 +67,9 @@ async def test_fault_sensor_names_come_from_the_translations(hass: HomeAssistant
     platform translations asynchronously, and a key missing from `strings.json` produces a
     nameless entity rather than an error.
     """
-    state = hass.states.get("binary_sensor.alarm_home_main_power_supply")
+    state = hass.states.get("binary_sensor.alarm_panel_home_main_power_supply")
     assert state is not None
-    assert state.attributes["friendly_name"] == "Alarm - Home Main power supply"
+    assert state.attributes["friendly_name"] == "Alarm panel - Home Main power supply"
 
 
 async def test_session_busy_keeps_last_known_state(
@@ -86,7 +87,7 @@ async def test_session_busy_keeps_last_known_state(
     assert coordinator.data.status.state == "off"
     assert coordinator.data.session_busy is True
 
-    state = hass.states.get("alarm_control_panel.alarm_home")
+    state = hass.states.get("alarm_control_panel.alarm_panel_home")
     assert state is not None
     assert state.state != "unavailable"
 
@@ -272,7 +273,7 @@ async def test_blocked_discovery_recovers_without_a_reload(hass: HomeAssistant, 
     assert await hass.config_entries.async_setup(other.entry_id)
     await hass.async_block_till_done()
 
-    features = hass.states.get("alarm_control_panel.alarm_annexe").attributes["supported_features"]
+    features = hass.states.get("alarm_control_panel.alarm_panel_annexe").attributes["supported_features"]
     assert not features & AlarmControlPanelEntityFeature.ARM_HOME
 
     mock_client.system.capabilities.discovered = True
@@ -280,7 +281,7 @@ async def test_blocked_discovery_recovers_without_a_reload(hass: HomeAssistant, 
     await other.runtime_data.async_refresh()
     await hass.async_block_till_done()
 
-    features = hass.states.get("alarm_control_panel.alarm_annexe").attributes["supported_features"]
+    features = hass.states.get("alarm_control_panel.alarm_panel_annexe").attributes["supported_features"]
     assert features & AlarmControlPanelEntityFeature.ARM_HOME
 
 
@@ -324,11 +325,11 @@ async def test_unmapped_partial_states_show_as_unknown_not_guessed(
     """
     mock_client.system.read_status.return_value = SystemStatus.from_json({"systemState": "tempo1", "groups": []})
     await entry.runtime_data.async_refresh()
-    assert hass.states.get("alarm_control_panel.alarm_home").state == "arming"
+    assert hass.states.get("alarm_control_panel.alarm_panel_home").state == "arming"
 
     mock_client.system.read_status.return_value = SystemStatus.from_json({"systemState": "partial1", "groups": []})
     await entry.runtime_data.async_refresh()
-    assert hass.states.get("alarm_control_panel.alarm_home").state == "unknown"
+    assert hass.states.get("alarm_control_panel.alarm_panel_home").state == "unknown"
 
 
 async def test_night_and_vacation_are_never_advertised(hass: HomeAssistant, mock_client: AsyncMock) -> None:
@@ -348,7 +349,7 @@ async def test_night_and_vacation_are_never_advertised(hass: HomeAssistant, mock
     assert await hass.config_entries.async_setup(other.entry_id)
     await hass.async_block_till_done()
 
-    state = hass.states.get("alarm_control_panel.alarm_annexe")
+    state = hass.states.get("alarm_control_panel.alarm_panel_annexe")
     assert state is not None
     features = state.attributes["supported_features"]
     assert not features & AlarmControlPanelEntityFeature.ARM_NIGHT
@@ -369,7 +370,7 @@ async def test_faults_follow_the_inventory(hass: HomeAssistant, entry: MockConfi
     Regression: the inventory used to be fetched once, so faults were frozen at startup
     and a flat battery or an opened tamper would never have surfaced.
     """
-    power = "binary_sensor.alarm_home_main_power_supply"
+    power = "binary_sensor.alarm_panel_home_main_power_supply"
     assert hass.states.get(power).state == "off"
 
     mock_client.system.read_inventory.return_value = Inventory.from_json(
@@ -525,7 +526,7 @@ async def test_entities_exist_even_if_the_inventory_fails(
         assert await hass.config_entries.async_setup(other.entry_id)
         await hass.async_block_till_done()
 
-    state = hass.states.get("binary_sensor.alarm_annexe_main_power_supply")
+    state = hass.states.get("binary_sensor.alarm_panel_annexe_main_power_supply")
     assert state is not None
     # Unknown, not missing: the entity exists and will populate once the inventory returns.
     assert state.state == "unknown"
