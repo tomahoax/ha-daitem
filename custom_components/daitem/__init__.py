@@ -6,9 +6,11 @@ the Daitem Secure app. Not affiliated with or endorsed by Daitem or Atral.
 
 from __future__ import annotations
 
+import voluptuous as vol
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD, Platform
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
+from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from pydaitem import DaitemAuthError, DaitemClient, DaitemError, DaitemSystem
@@ -23,6 +25,53 @@ PLATFORMS: list[Platform] = [
     Platform.BUTTON,
     Platform.SENSOR,
 ]
+
+SERVICE_ARM_GROUPS = "arm_groups"
+ATTR_GROUPS = "groups"
+ATTR_ACTIVE = "active"
+ATTR_ENTITY_ID = "entity_id"
+
+SERVICE_ARM_GROUPS_SCHEMA = vol.Schema(
+    {
+        vol.Required(ATTR_GROUPS): vol.All(cv.ensure_list, [vol.Coerce(int)]),
+        vol.Optional(ATTR_ACTIVE, default=True): cv.boolean,
+        vol.Optional(ATTR_ENTITY_ID): cv.entity_ids,
+    }
+)
+
+
+def _async_setup_services(hass: HomeAssistant) -> None:
+    if hass.services.has_service(DOMAIN, SERVICE_ARM_GROUPS):
+        return
+
+    async def async_handle_arm_groups(call: ServiceCall) -> None:
+        raw_groups: list[int] = call.data[ATTR_GROUPS]
+        active: bool = call.data.get(ATTR_ACTIVE, True)
+        target_entity_ids = call.data.get(ATTR_ENTITY_ID)
+
+        group_map = {int(gid): active for gid in raw_groups}
+
+        entries: list[DaitemConfigEntry] = hass.config_entries.async_entries(DOMAIN)
+        for entry in entries:
+            coordinator: DaitemCoordinator | None = getattr(entry, "runtime_data", None)
+            if coordinator is None:
+                continue
+
+            if target_entity_ids:
+                system_id_str = str(coordinator.system_id)
+                matched = any(system_id_str in eid or eid.endswith("_alarm") for eid in target_entity_ids)
+                if not matched and len(entries) > 1:
+                    continue
+
+            status = await coordinator.system.commands.arm_groups(group_map)
+            await coordinator.async_apply_command_result(status)
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_ARM_GROUPS,
+        async_handle_arm_groups,
+        schema=SERVICE_ARM_GROUPS_SCHEMA,
+    )
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: DaitemConfigEntry) -> bool:
@@ -69,9 +118,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: DaitemConfigEntry) -> bo
     coordinator.panel_device_id = panel_device.id
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    _async_setup_services(hass)
     return True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: DaitemConfigEntry) -> bool:
     """Unload the installation."""
-    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    if unloaded and not any(
+        e.entry_id != entry.entry_id and getattr(e, "runtime_data", None)
+        for e in hass.config_entries.async_entries(DOMAIN)
+    ):
+        hass.services.async_remove(DOMAIN, SERVICE_ARM_GROUPS)
+    return unloaded

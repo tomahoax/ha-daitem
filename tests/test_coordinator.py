@@ -380,10 +380,44 @@ async def test_night_and_vacation_are_never_advertised(hass: HomeAssistant, mock
     state = hass.states.get("alarm_control_panel.alarm_panel_annexe")
     assert state is not None
     features = state.attributes["supported_features"]
-    assert not features & AlarmControlPanelEntityFeature.ARM_NIGHT
+    assert features & AlarmControlPanelEntityFeature.ARM_NIGHT
     assert not features & AlarmControlPanelEntityFeature.ARM_VACATION
     assert features & AlarmControlPanelEntityFeature.ARM_AWAY
     assert features & AlarmControlPanelEntityFeature.ARM_HOME
+
+
+async def test_arm_night_triggers_groups_1_and_2(
+    hass: HomeAssistant, entry: MockConfigEntry, mock_client: AsyncMock
+) -> None:
+    """Arming Night mode directly arms groups 1 and 2."""
+    mock_client.system.commands.arm_groups.return_value = SystemStatus.from_json(
+        {"systemState": "group", "groups": [{"id": 1, "active": True}, {"id": 2, "active": True}]}
+    )
+    await hass.services.async_call(
+        "alarm_control_panel",
+        "alarm_arm_night",
+        {"entity_id": "alarm_control_panel.alarm_panel_home"},
+        blocking=True,
+    )
+    mock_client.system.commands.arm_groups.assert_called_once_with({1: True, 2: True})
+    assert hass.states.get("alarm_control_panel.alarm_panel_home").state == "armed_night"
+
+
+async def test_arm_groups_service(
+    hass: HomeAssistant, entry: MockConfigEntry, mock_client: AsyncMock
+) -> None:
+    """The daitem.arm_groups service allows selecting specific groups."""
+    mock_client.system.commands.arm_groups.return_value = SystemStatus.from_json(
+        {"systemState": "group", "groups": [{"id": 1, "active": True}, {"id": 3, "active": True}]}
+    )
+    await hass.services.async_call(
+        DOMAIN,
+        "arm_groups",
+        {"groups": [1, 3], "active": True},
+        blocking=True,
+    )
+    mock_client.system.commands.arm_groups.assert_called_with({1: True, 3: True})
+    assert hass.states.get("alarm_control_panel.alarm_panel_home").state == "armed_night"
 
 
 async def test_unload(hass: HomeAssistant, entry: MockConfigEntry) -> None:

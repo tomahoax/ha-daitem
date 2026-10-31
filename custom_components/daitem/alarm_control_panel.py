@@ -37,6 +37,7 @@ STATE_MAP: dict[PanelState, AlarmControlPanelState] = {
     PanelState.ARMING: AlarmControlPanelState.ARMING,
     PanelState.ARMED_FULL: AlarmControlPanelState.ARMED_AWAY,
     PanelState.ARMED_PRESENCE: AlarmControlPanelState.ARMED_HOME,
+    PanelState.ARMED_GROUPS: AlarmControlPanelState.ARMED_NIGHT,
     PanelState.TRIGGERED: AlarmControlPanelState.TRIGGERED,
 }
 
@@ -89,13 +90,8 @@ class DaitemAlarmPanel(DaitemEntity, AlarmControlPanelEntity):
 
     @property
     def supported_features(self) -> AlarmControlPanelEntityFeature:
-        """Advertise only the modes this installation actually supports.
-
-        Read on every state write rather than frozen at construction: discovery can be
-        blocked at setup by a session another device holds, and the coordinator retries
-        it. The Home button then comes back on its own, without a reload.
-        """
-        features = AlarmControlPanelEntityFeature(0)
+        """Advertise the arming modes this installation supports, plus Night Mode."""
+        features = AlarmControlPanelEntityFeature.ARM_NIGHT
         for mode in self.coordinator.arm_modes:
             features |= FEATURE_MAP.get(mode, AlarmControlPanelEntityFeature(0))
         return features
@@ -130,6 +126,18 @@ class DaitemAlarmPanel(DaitemEntity, AlarmControlPanelEntity):
 
     async def async_alarm_arm_home(self, code: str | None = None) -> None:
         await self._run(self.coordinator.system.commands.arm_presence)
+
+    async def async_alarm_arm_night(self, code: str | None = None) -> None:
+        """Arm groups 1 and 2 in Night mode."""
+        await self.async_arm_groups({1: True, 2: True})
+
+    async def async_arm_groups(self, groups: dict[int, bool] | list[int]) -> None:
+        """Arm or disarm specific groups directly."""
+        if isinstance(groups, list):
+            group_map = {int(gid): True for gid in groups}
+        else:
+            group_map = {int(k): bool(v) for k, v in groups.items()}
+        await self._run(lambda: self.coordinator.system.commands.arm_groups(group_map))
 
     async def _run(self, action: Callable[[], Awaitable[SystemStatus]]) -> None:
         """Run one command and publish the state it returns.

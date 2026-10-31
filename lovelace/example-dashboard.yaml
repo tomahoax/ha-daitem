@@ -19,11 +19,10 @@ cards:
   - type: alarm-panel
     name: Alarm
     entity: alarm_control_panel.alarm_panel_home
-    # Only the two modes the integration exposes. Adding arm_night or arm_vacation here
-    # shows buttons the panel will refuse.
     states:
       - arm_away
       - arm_home
+      - arm_night
 
   # Visible only while another device holds the panel session: the state below is then the
   # last known one, not a fresh read.
