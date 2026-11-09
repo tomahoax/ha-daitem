@@ -1,16 +1,18 @@
-"""Manual refresh button for the alarm state."""
+"""Manual refresh button for the alarm state, and automations that only take an impulse."""
 
 from __future__ import annotations
 
 from homeassistant.components.button import ButtonEntity
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+from pydaitem import Automatism
 
+from .automatism import IMPULSES, DaitemAutomatismEntity, automatisms_for, first_accepted
 from .coordinator import DaitemConfigEntry, DaitemCoordinator
 from .entity import DaitemEntity
 
-#: The coordinator drives refreshes on its own.
-PARALLEL_UPDATES = 0
+#: One command at a time: the panel takes a single session.
+PARALLEL_UPDATES = 1
 
 
 async def async_setup_entry(
@@ -18,7 +20,9 @@ async def async_setup_entry(
     entry: DaitemConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    async_add_entities([DaitemRefreshButton(entry.runtime_data)])
+    coordinator = entry.runtime_data
+    async_add_entities([DaitemRefreshButton(coordinator)])
+    async_add_entities(DaitemImpulseButton(coordinator, a) for a in automatisms_for(coordinator, "button"))
 
 
 class DaitemRefreshButton(DaitemEntity, ButtonEntity):
@@ -37,3 +41,14 @@ class DaitemRefreshButton(DaitemEntity, ButtonEntity):
         # Debounced by the coordinator, so repeated presses will not pile up sessions
         # on the panel.
         await self.coordinator.async_request_refresh()
+
+
+class DaitemImpulseButton(DaitemAutomatismEntity, ButtonEntity):
+    """A gate or garage door that only takes an impulse, so it has no trustworthy state."""
+
+    def __init__(self, coordinator: DaitemCoordinator, automatism: Automatism) -> None:
+        super().__init__(coordinator, automatism)
+
+    async def async_press(self) -> None:
+        automatism = self.current()
+        await self._send(first_accepted(automatism, *IMPULSES) if automatism else None)

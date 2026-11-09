@@ -90,6 +90,27 @@
       },
       "group": {
         "name": "Group"
+      },
+      "camera_status": {
+        "name": "Camera status"
+      },
+      "last_clip": {
+        "name": "Latest clip"
+      },
+      "last_event": {
+        "name": "Latest event"
+      }
+    },
+    "event": {
+      "event_log": {
+        "name": "Event log",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "logged": "Logged"
+            }
+          }
+        }
       }
     }
   },

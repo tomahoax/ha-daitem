@@ -29,6 +29,10 @@ SECRET_KEY_FRAGMENTS = (
     "jwt",
     "code",
     "sessionid",
+    # Camera vendor cloud access: playback credentials, not identifiers.
+    "playinfo",
+    "deeplink",
+    "channelid",
 )
 
 #: Kept as `abc...xyz`: still correlatable across the payload, no longer identifying.
@@ -40,6 +44,14 @@ IDENTIFYING_KEY_FRAGMENTS = (
     "useruid",
     "email",
     "name",
+    "label",
+    "uid",
+    "carir",
+    "transmitterid",
+    "phone",
+    "address",
+    "city",
+    "zipcode",
 )
 
 #: Raw payloads stay bounded, so a diagnostics file remains attachable to an issue.

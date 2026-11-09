@@ -3,6 +3,11 @@
 Everything here goes through `redaction`: the credentials and the refresh token never
 appear, serial numbers and device names are kept only partially.
 
+The raw answers of every read that matters (automations, cameras, clips, widgets,
+scenarios, the event log...) are fetched again when the file is downloaded, through
+`DaitemSystem.collect_raw`. They are what a tester with hardware nobody else has sends
+back, and what settles how those devices are supported.
+
 Both a structured summary and the raw API payloads are included. The summary answers the
 usual questions (is the coordinator updating, is the panel session held by another device,
 which arming modes were discovered); the raw payloads are where an unmapped state or a
@@ -16,8 +21,9 @@ from typing import Any
 
 from homeassistant.const import CONF_EMAIL
 from homeassistant.core import HomeAssistant
-from pydaitem import Inventory, SystemStatus
+from pydaitem import DaitemError, Inventory, SystemStatus
 
+from .automatism import entity_kind
 from .const import CONF_SYSTEM_ID
 from .coordinator import DaitemConfigEntry
 from .redaction import partial, redact
@@ -60,7 +66,59 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: DaitemC
         "status": redact(data.status.raw),
         "inventory": redact(data.inventory.raw) if data.inventory else None,
     }
+    diagnostics["extras"] = {
+        "automatisms": [
+            {
+                "category": a.category,
+                "commands": a.available_commands,
+                "state": a.state,
+                "position": a.position,
+                "entity": entity_kind(a),
+            }
+            for a in data.automatisms
+        ],
+        "cameras": [{"type": c.type, "status": c.status} for c in data.cameras],
+        "clip_count": len(data.clips),
+        "latest_clip": _clip_summary(data),
+        "failing_reads": sorted(getattr(coordinator, "_extras_failing", set())),
+        "event_log": _event_log_summary(coordinator),
+    }
+    diagnostics["raw_api"] = await _raw_api(coordinator)
     return diagnostics
+
+
+def _clip_summary(data: Any) -> dict[str, Any] | None:
+    clip = data.latest_clip
+    if clip is None:
+        return None
+    return {
+        "taken_at": clip.taken_at.isoformat() if clip.taken_at else None,
+        "kind": clip.kind,
+        "category": clip.category,
+        "format": clip.format,
+    }
+
+
+def _event_log_summary(coordinator: Any) -> dict[str, Any]:
+    event_log = getattr(coordinator, "event_log", None)
+    if event_log is None:
+        return {"enabled": False}
+    return {
+        "enabled": True,
+        "last_update_success": event_log.last_update_success,
+        "entries": len(event_log.data or []),
+    }
+
+
+async def _raw_api(coordinator: Any) -> dict[str, Any]:
+    """Every raw read, fetched now. Best effort: a failure is reported, never raised."""
+    system = getattr(coordinator, "system", None)
+    if system is None:
+        return {"error": "no installation set up"}
+    try:
+        return redact(await system.collect_raw(logbook_entries=5))  # type: ignore[no-any-return]
+    except DaitemError as err:
+        return {"error": f"{type(err).__name__}: {err}"}
 
 
 def _update_interval_seconds(coordinator: Any) -> int | None:

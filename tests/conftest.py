@@ -11,7 +11,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
 from homeassistant.core import HomeAssistant
-from pydaitem import ArmMode, Inventory, System, SystemStatus
+from pydaitem import ArmMode, Extras, Inventory, System, SystemStatus
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.daitem.const import CONF_MASTER_CODE, CONF_SYSTEM_ID, DOMAIN
@@ -93,6 +93,10 @@ def mock_client(mock_system: System, mock_status: SystemStatus, mock_inventory: 
     system.read_inventory.return_value = mock_inventory
     system.capabilities.arm_modes.return_value = frozenset({ArmMode.AWAY, ArmMode.PRESENCE})
     system.capabilities.discovered = True
+    # Most installations have no automation, camera or clip: that is the default here.
+    system.read_extras.return_value = Extras(automatisms=[], cameras=[], clips=[])
+    system.read_logbook.return_value = []
+    system.collect_raw.return_value = {"system_id": mock_system.id, "payloads": {}, "errors": {}}
 
     with (
         patch("custom_components.daitem.config_flow.DaitemClient", return_value=client),

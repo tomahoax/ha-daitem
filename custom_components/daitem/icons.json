@@ -85,6 +85,20 @@
       },
       "group": {
         "default": "mdi:home-group"
+      },
+      "camera_status": {
+        "default": "mdi:cctv"
+      },
+      "last_clip": {
+        "default": "mdi:filmstrip"
+      },
+      "last_event": {
+        "default": "mdi:history"
+      }
+    },
+    "event": {
+      "event_log": {
+        "default": "mdi:format-list-bulleted"
       }
     }
   }

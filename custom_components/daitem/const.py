@@ -36,3 +36,16 @@ RETRY_SCAN_INTERVAL: Final = 30
 #: this, the panel is not having a glitch, it is unreachable, and there is nothing to gain
 #: from keeping up the pace.
 RETRY_ATTEMPTS: Final = 5
+
+#: Automations, cameras and clips: re-read every five minutes on an installation that has
+#: some, every thirty on one that has none, so the many installations without them pay
+#: almost nothing for the feature. They are never read at the arming pace.
+EXTRAS_SCAN_INTERVAL: Final = 300
+EXTRAS_IDLE_SCAN_INTERVAL: Final = 1800
+
+#: After an automation command, state reads at these delays: the app also waits for the
+#: next state update before showing the outcome.
+COMMAND_FOLLOW_UP_DELAYS: Final = (5, 30)
+
+#: The event log is a slow, large, asynchronous read: fifteen minutes is plenty.
+EVENT_LOG_SCAN_INTERVAL: Final = 900

@@ -21,16 +21,23 @@ The session strategy it relies on was validated by measurement:
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+import time
+from collections.abc import Callable
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
+from typing import TYPE_CHECKING
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.helpers.event import async_call_later
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 from pydaitem import (
     ArmMode,
+    Automatism,
+    Camera,
+    Clip,
     DaitemAuthError,
     DaitemError,
     DaitemForbiddenError,
@@ -42,12 +49,18 @@ from pydaitem import (
 
 from .const import (
     ARMING_SCAN_INTERVAL,
+    COMMAND_FOLLOW_UP_DELAYS,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
+    EXTRAS_IDLE_SCAN_INTERVAL,
+    EXTRAS_SCAN_INTERVAL,
     RETRY_ATTEMPTS,
     RETRY_SCAN_INTERVAL,
 )
 from .repairs import async_set_arm_modes_issue, async_set_session_busy_issue
+
+if TYPE_CHECKING:
+    from .event_log import DaitemEventLogCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -69,6 +82,17 @@ class DaitemData:
     last_success: datetime
     session_busy: bool = False
     """True when the last cycle failed because another device held the session."""
+    automatisms: list[Automatism] = field(default_factory=list)
+    cameras: list[Camera] = field(default_factory=list)
+    clips: list[Clip] = field(default_factory=list)
+
+    @property
+    def latest_clip(self) -> Clip | None:
+        dated = [clip for clip in self.clips if clip.taken_at is not None]
+        return max(dated, key=lambda clip: clip.taken_at or 0) if dated else None
+
+    def automatism(self, automatism_id: str) -> Automatism | None:
+        return next((a for a in self.automatisms if a.id == automatism_id), None)
 
 
 class DaitemCoordinator(DataUpdateCoordinator[DaitemData]):
@@ -97,6 +121,11 @@ class DaitemCoordinator(DataUpdateCoordinator[DaitemData]):
         self._consecutive_session_busy = 0
         self._consecutive_failures = 0
         self._capabilities_discovered = False
+        self._extras_due = 0.0
+        self._extras_failing: set[str] = set()
+        self._follow_ups: list[Callable[[], None]] = []
+        self.event_log: DaitemEventLogCoordinator | None = None
+        """Set by `async_setup_entry` when the account may read the event log."""
 
     @property
     def system_id(self) -> int:
@@ -157,12 +186,7 @@ class DaitemCoordinator(DataUpdateCoordinator[DaitemData]):
                 async_set_session_busy_issue(self.hass, self.system_id, active=True)
             if self.data is not None:
                 self._note_cycle_delivered_data(self.data.status)
-                return DaitemData(
-                    status=self.data.status,
-                    inventory=self.data.inventory,
-                    last_success=self.data.last_success,
-                    session_busy=True,
-                )
+                return replace(self.data, session_busy=True)
             raise self._note_failed_cycle(f"Panel session busy: {err}") from err
         except DaitemError as err:
             raise self._note_failed_cycle(f"Error communicating with Daitem: {err}") from err
@@ -177,11 +201,63 @@ class DaitemCoordinator(DataUpdateCoordinator[DaitemData]):
         if not self._capabilities_discovered:
             await self.async_load_capabilities()
 
+        automatisms, cameras, clips = await self._read_extras()
         return DaitemData(
             status=status,
             inventory=await self._read_inventory(),
             last_success=dt_util.utcnow(),
+            automatisms=automatisms,
+            cameras=cameras,
+            clips=clips,
         )
+
+    async def _read_extras(self) -> tuple[list[Automatism], list[Camera], list[Clip]]:
+        """Automations, cameras and clips, on their own slower pace.
+
+        A list that fails to read keeps its previous value, as the inventory does, with one
+        warning per outage. None of these was seen with real hardware when this was
+        written, which is why a failure is spelled out rather than swallowed.
+        """
+        previous = self.data
+        if previous is not None and time.monotonic() < self._extras_due:
+            return previous.automatisms, previous.cameras, previous.clips
+
+        extras = await self.system.read_extras()
+        automatisms = _pick(extras.automatisms, previous.automatisms if previous else [])
+        cameras = _pick(extras.cameras, previous.cameras if previous else [])
+        clips = _pick(extras.clips, previous.clips if previous else [])
+
+        failing = set(extras.errors)
+        for name in sorted(failing - self._extras_failing):
+            _LOGGER.warning("Could not read the Daitem %s: %s", name, extras.errors[name])
+        for name in sorted(self._extras_failing - failing):
+            _LOGGER.info("Daitem %s readable again", name)
+        self._extras_failing = failing
+
+        found = bool(automatisms or cameras or clips)
+        delay = EXTRAS_SCAN_INTERVAL if found or failing else EXTRAS_IDLE_SCAN_INTERVAL
+        self._extras_due = time.monotonic() + delay
+        return automatisms, cameras, clips
+
+    def async_follow_up_command(self) -> None:
+        """Read the automations again shortly after a command, then once more later.
+
+        The command answer carries no state, and the app also waits for the next state
+        update before showing the outcome.
+        """
+        for delay in COMMAND_FOLLOW_UP_DELAYS:
+            self._follow_ups.append(async_call_later(self.hass, delay, self._follow_up))
+
+    @callback
+    def _follow_up(self, _now: datetime) -> None:
+        self._extras_due = 0.0
+        self.hass.async_create_task(self.async_request_refresh())
+
+    async def async_shutdown(self) -> None:
+        for cancel in self._follow_ups:
+            cancel()
+        self._follow_ups.clear()
+        await super().async_shutdown()
 
     async def _read_inventory(self) -> Inventory | None:
         """Refresh the inventory every cycle, because faults live in it.
@@ -258,10 +334,13 @@ class DaitemCoordinator(DataUpdateCoordinator[DaitemData]):
         """
         _LOGGER.debug("Publishing the state returned by the command: %s", status.state)
         self._note_cycle_delivered_data(status)
-        self.async_set_updated_data(
-            DaitemData(
-                status=status,
-                inventory=self.data.inventory if self.data else None,
-                last_success=dt_util.utcnow(),
-            )
-        )
+        if self.data is not None:
+            data = replace(self.data, status=status, last_success=dt_util.utcnow(), session_busy=False)
+        else:
+            data = DaitemData(status=status, inventory=None, last_success=dt_util.utcnow())
+        self.async_set_updated_data(data)
+
+
+def _pick[T](fresh: list[T] | None, previous: list[T]) -> list[T]:
+    """The fresh list when it was read, the previous one when its read failed."""
+    return fresh if fresh is not None else previous

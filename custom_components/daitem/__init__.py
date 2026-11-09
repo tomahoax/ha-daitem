@@ -15,13 +15,18 @@ from pydaitem import DaitemAuthError, DaitemClient, DaitemError, DaitemSystem
 
 from .const import CONF_MASTER_CODE, CONF_SYSTEM_ID, DOMAIN
 from .coordinator import DaitemConfigEntry, DaitemCoordinator
+from .event_log import DaitemEventLogCoordinator
 from .tokens import ConfigEntryTokenStore
 
 PLATFORMS: list[Platform] = [
     Platform.ALARM_CONTROL_PANEL,
     Platform.BINARY_SENSOR,
     Platform.BUTTON,
+    Platform.COVER,
+    Platform.EVENT,
+    Platform.LIGHT,
     Platform.SENSOR,
+    Platform.SWITCH,
 ]
 
 
@@ -55,6 +60,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: DaitemConfigEntry) -> bo
 
     entry.runtime_data = coordinator
 
+    # Read once now, so its entities exist only for accounts allowed to read it. A failure
+    # other than a refusal still creates them: they wait, unavailable, for a later read.
+    event_log = DaitemEventLogCoordinator(hass, entry, system)
+    await event_log.async_refresh()
+    coordinator.event_log = None if event_log.forbidden else event_log
+
     # Registered explicitly, and before the platforms, so the per-device entities can hang
     # off it through `via_device_id` without racing whichever platform would otherwise
     # register it first. Its id is kept on the coordinator rather than looked up again by
@@ -74,4 +85,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: DaitemConfigEntry) -> bo
 
 async def async_unload_entry(hass: HomeAssistant, entry: DaitemConfigEntry) -> bool:
     """Unload the installation."""
-    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    if unloaded:
+        coordinator = entry.runtime_data
+        await coordinator.async_shutdown()
+        if coordinator.event_log is not None:
+            await coordinator.event_log.async_shutdown()
+    return unloaded

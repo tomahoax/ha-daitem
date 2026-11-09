@@ -29,11 +29,12 @@ FAULT_KEYS = sorted({fault.value for fault in (*CENTRAL_FAULTS, *DETECTOR_FAULTS
 #: Inhibition is not a fault, but it is a binary sensor and needs the same treatment.
 BINARY_SENSOR_KEYS = sorted([*FAULT_KEYS, "inhibited"])
 
-SENSOR_KEYS = sorted([*(d.key for d in FIRMWARES), "group"])
+SENSOR_KEYS = sorted([*(d.key for d in FIRMWARES), "group", "camera_status", "last_clip", "last_event"])
 
 #: Which platforms declare which keys, so a new one cannot be added to the code without
-#: reaching the translation and icon files.
-EXPECTED = {"binary_sensor": BINARY_SENSOR_KEYS, "sensor": SENSOR_KEYS}
+#: reaching the translation and icon files. Automation entities carry no key: each is the
+#: main entity of its own device, named after it.
+EXPECTED = {"binary_sensor": BINARY_SENSOR_KEYS, "sensor": SENSOR_KEYS, "event": ["event_log"]}
 
 
 def _load(name: str) -> dict[str, Any]:
