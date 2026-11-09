@@ -23,6 +23,7 @@ from typing import Any
 from homeassistant.const import CONF_EMAIL
 from homeassistant.core import HomeAssistant
 from pydaitem import DaitemError, Inventory, SystemStatus, redact, redact_identifier
+from pydaitem.client import ClientStats
 
 from .automatism import entity_kind
 from .const import CONF_SYSTEM_ID
@@ -84,7 +85,23 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: DaitemC
         "event_log": _event_log_summary(coordinator),
     }
     diagnostics["raw_api"] = await _raw_api(coordinator)
+    diagnostics["api_load"] = _api_load(coordinator)
     return diagnostics
+
+
+def _api_load(coordinator: Any) -> dict[str, Any] | None:
+    """What the integration sent to Daitem since it started: the load it puts on the API."""
+    stats = getattr(getattr(getattr(coordinator, "system", None), "client", None), "stats", None)
+    if not isinstance(stats, ClientStats):
+        return None
+    return {
+        "total_requests": stats.total_requests,
+        "retries": stats.retries,
+        "refused_locally": stats.refused_locally,
+        "sessions_opened": stats.sessions_opened,
+        "session_seconds": round(stats.session_seconds, 1),
+        "by_endpoint": dict(stats.requests.most_common()),
+    }
 
 
 def _clip_summary(data: Any) -> dict[str, Any] | None:

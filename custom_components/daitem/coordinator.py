@@ -171,9 +171,7 @@ class DaitemCoordinator(DataUpdateCoordinator[DaitemData]):
             )
 
     async def _async_update_data(self) -> DaitemData:
-        # The state and the inventory, each failing on its own: the faults need no panel
-        # session, so a busy panel no longer freezes them.
-        snapshot = await self.system.read_snapshot()
+        snapshot = await self._read()
         inventory = self._pick_inventory(snapshot)
         status = snapshot.status
         err = snapshot.errors.get("status")
@@ -262,6 +260,23 @@ class DaitemCoordinator(DataUpdateCoordinator[DaitemData]):
             cancel()
         self._follow_ups.clear()
         await super().async_shutdown()
+
+    async def _read(self) -> Snapshot:
+        """The state and the inventory, each failing on its own; the state alone mid-arming.
+
+        The faults need no panel session, so a busy panel no longer freezes them. During an
+        exit delay the cycle runs every few seconds to follow the state, and the faults can
+        wait for it to settle: the inventory is not read again, which spares the API a
+        request on each of those cycles.
+        """
+        if self.data is None or not self.data.status.is_arming:
+            return await self.system.read_snapshot()
+        snapshot = Snapshot(inventory=self.data.inventory)
+        try:
+            snapshot.status = await self.system.panel.read()
+        except DaitemError as err:
+            snapshot.errors["status"] = err
+        return snapshot
 
     def _pick_inventory(self, snapshot: Snapshot) -> Inventory | None:
         """The inventory of this cycle, read every time because faults live in it.

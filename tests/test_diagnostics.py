@@ -14,6 +14,7 @@ from unittest.mock import AsyncMock
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
 from homeassistant.core import HomeAssistant
 from pydaitem import redact
+from pydaitem.client import ClientStats
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from conftest import ENTRY_DATA
@@ -85,3 +86,17 @@ def test_redaction_catches_keys_nobody_anticipated() -> None:
     assert redacted["serialNumber"] == "SN-...789"
     assert redacted["systemState"] == "off"
     assert redacted["session_busy"] is True
+
+
+async def test_diagnostics_show_the_load_on_the_api(
+    hass: HomeAssistant, entry: MockConfigEntry, mock_client: AsyncMock
+) -> None:
+    stats = ClientStats(sessions_opened=2, session_seconds=1.25)
+    stats.requests["GET /topaze/v5/systems/{id}/state"] = 3
+    mock_client.system.client.stats = stats
+
+    load = (await async_get_config_entry_diagnostics(hass, entry))["api_load"]
+
+    assert load["total_requests"] == 3
+    assert load["sessions_opened"] == 2
+    assert load["by_endpoint"] == {"GET /topaze/v5/systems/{id}/state": 3}

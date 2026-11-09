@@ -35,6 +35,12 @@ Beta, for installations with automations or cameras. Requires pydaitem 0.3.0b1.
   held by the mobile app is reported as such, not as a wrong code.
 - Redaction comes from pydaitem, which applies it to its own dumps as well.
 - "Enable debug logging" now captures the library's lines too (`loggers` in the manifest).
+- Each call to the library is bounded to 60 s, the wait for the panel included, so a slow or
+  hung Daitem server fails a cycle rather than stalling it.
+- During an exit delay the five-second cycles read the state alone: the inventory waits for
+  the delay to end, which spares the API a request per cycle.
+- Diagnostics show the load the integration puts on the Daitem API: requests by endpoint,
+  retries, panel sessions and how long they were held.
 
 ### Notes
 

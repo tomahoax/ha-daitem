@@ -27,6 +27,11 @@ DEFAULT_SCAN_INTERVAL: Final = 300
 #: (tempo -> on), so we follow closely and then fall back to the normal interval.
 ARMING_SCAN_INTERVAL: Final = 5
 
+#: The longest one call to the library may take, the wait for the panel included. A slow
+#: or hung Daitem server then fails a cycle rather than stalling it. 60 s covers a deferred
+#: connect (30 s at most) and the requests around it.
+CALL_TIMEOUT: Final = 60
+
 #: Polling interval after a failed cycle. At the normal interval a one-second glitch on
 #: the panel side leaves the alarm entity unavailable for five minutes, which is what the
 #: user actually sees. Retrying at thirty seconds cuts that to about one.

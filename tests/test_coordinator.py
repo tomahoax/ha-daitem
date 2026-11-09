@@ -34,6 +34,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from conftest import ENTRY_DATA
 from custom_components.daitem.const import (
     ARMING_SCAN_INTERVAL,
+    CALL_TIMEOUT,
     CONF_MASTER_CODE,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
@@ -151,9 +152,17 @@ async def test_polling_speeds_up_while_arming(
     await coordinator.async_refresh()
     assert coordinator.update_interval == timedelta(seconds=ARMING_SCAN_INTERVAL)
 
+    # Mid-arming the cycle reads the state alone: the faults wait for the delay to end.
+    mock_client.system.inventory.read.reset_mock()
     mock_client.system.panel.read.return_value = SystemStatus.from_json({"systemState": "on", "groups": []})
     await coordinator.async_refresh()
     assert coordinator.update_interval == timedelta(seconds=DEFAULT_SCAN_INTERVAL)
+    mock_client.system.inventory.read.assert_not_called()
+    assert coordinator.data.inventory is not None  # kept from before the delay
+
+    # Settled: the inventory is read again on the next cycle.
+    await coordinator.async_refresh()
+    mock_client.system.inventory.read.assert_called_once()
 
 
 async def test_a_failed_cycle_retries_fast_then_recovers(
@@ -663,3 +672,10 @@ async def test_token_store_survives_a_removed_entry(
 
     # The cause must be traceable even though it is silently tolerated.
     assert "Config entry gone, refresh token not persisted:" in caplog.text
+
+
+async def test_each_library_call_is_bounded(
+    hass: HomeAssistant, entry: MockConfigEntry, mock_client: AsyncMock
+) -> None:
+    """A slow or hung Daitem server fails a cycle rather than stalling it."""
+    assert mock_client.constructor.call_args.kwargs["call_timeout"] == CALL_TIMEOUT

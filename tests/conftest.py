@@ -22,6 +22,7 @@ from pydaitem import (
     System,
     SystemStatus,
 )
+from pydaitem.client import ClientStats
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.daitem.const import CONF_MASTER_CODE, CONF_SYSTEM_ID, DOMAIN
@@ -104,6 +105,8 @@ def mock_client(mock_system: System, mock_status: SystemStatus, mock_inventory: 
     system.panel.read.return_value = mock_status
     system.inventory.read.return_value = mock_inventory
     system.panel.check_code.return_value = None
+    # Real counters, empty, as a client that just started has: an autospec would answer mocks.
+    system.client.stats = ClientStats()
 
     async def read_snapshot() -> Snapshot:
         """The library's own logic, over the two reads the tests configure."""

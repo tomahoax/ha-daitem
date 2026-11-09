@@ -13,7 +13,7 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from pydaitem import DaitemAuthError, DaitemClient, DaitemError, DaitemSystem
 
-from .const import CONF_MASTER_CODE, CONF_SYSTEM_ID, DOMAIN
+from .const import CALL_TIMEOUT, CONF_MASTER_CODE, CONF_SYSTEM_ID, DOMAIN
 from .coordinator import DaitemConfigEntry, DaitemCoordinator
 from .event_log import DaitemEventLogCoordinator
 from .tokens import ConfigEntryTokenStore
@@ -40,6 +40,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: DaitemConfigEntry) -> bo
         entry.data[CONF_PASSWORD],
         session=async_get_clientsession(hass),
         token_store=ConfigEntryTokenStore(hass, entry),
+        call_timeout=CALL_TIMEOUT,
     )
 
     # The façade owns the session protocol and the alarm code; the integration never
