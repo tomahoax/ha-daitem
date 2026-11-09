@@ -38,12 +38,11 @@ from pydaitem import (
     Automatism,
     Camera,
     Clip,
-    DaitemAuthError,
     DaitemError,
-    DaitemForbiddenError,
     DaitemSessionBusyError,
     DaitemSystem,
     Inventory,
+    Snapshot,
     SystemStatus,
 )
 
@@ -57,6 +56,7 @@ from .const import (
     RETRY_ATTEMPTS,
     RETRY_SCAN_INTERVAL,
 )
+from .errors import needs_reauth
 from .repairs import async_set_arm_modes_issue, async_set_session_busy_issue
 
 if TYPE_CHECKING:
@@ -171,13 +171,17 @@ class DaitemCoordinator(DataUpdateCoordinator[DaitemData]):
             )
 
     async def _async_update_data(self) -> DaitemData:
-        try:
-            status = await self.system.read_status()
-        except (DaitemAuthError, DaitemForbiddenError) as err:
-            # A 403 on connect() means a wrong master code, not a restricted account: the
-            # reauth form asks for it again, unlike a plain retry loop.
+        # The state and the inventory, each failing on its own: the faults need no panel
+        # session, so a busy panel no longer freezes them.
+        snapshot = await self.system.read_snapshot()
+        inventory = self._pick_inventory(snapshot)
+        status = snapshot.status
+        err = snapshot.errors.get("status")
+        if err is not None and needs_reauth(err):
+            # A refused password or alarm code: polling cannot fix it, the reauth form asks
+            # the user for it again.
             raise ConfigEntryAuthFailed(str(err)) from err
-        except DaitemSessionBusyError as err:
+        if isinstance(err, DaitemSessionBusyError):
             # Another device is driving the alarm; that is not a failure. Keep the last
             # known state rather than making entities unavailable.
             _LOGGER.debug("Panel session busy, keeping last known state: %s", err)
@@ -186,9 +190,9 @@ class DaitemCoordinator(DataUpdateCoordinator[DaitemData]):
                 async_set_session_busy_issue(self.hass, self.system_id, active=True)
             if self.data is not None:
                 self._note_cycle_delivered_data(self.data.status)
-                return replace(self.data, session_busy=True)
+                return replace(self.data, inventory=inventory, session_busy=True)
             raise self._note_failed_cycle(f"Panel session busy: {err}") from err
-        except DaitemError as err:
+        if err is not None or status is None:
             raise self._note_failed_cycle(f"Error communicating with Daitem: {err}") from err
 
         self._note_cycle_delivered_data(status)
@@ -204,7 +208,7 @@ class DaitemCoordinator(DataUpdateCoordinator[DaitemData]):
         automatisms, cameras, clips = await self._read_extras()
         return DaitemData(
             status=status,
-            inventory=await self._read_inventory(),
+            inventory=inventory,
             last_success=dt_util.utcnow(),
             automatisms=automatisms,
             cameras=cameras,
@@ -259,16 +263,17 @@ class DaitemCoordinator(DataUpdateCoordinator[DaitemData]):
         self._follow_ups.clear()
         await super().async_shutdown()
 
-    async def _read_inventory(self) -> Inventory | None:
-        """Refresh the inventory every cycle, because faults live in it.
+    def _pick_inventory(self, snapshot: Snapshot) -> Inventory | None:
+        """The inventory of this cycle, read every time because faults live in it.
 
         Fetching it once would freeze fault reporting at startup: a battery going flat or
         a tamper opening would never surface. It needs no panel session, so the extra call
-        costs nothing and creates no contention with the mobile app.
+        costs nothing and creates no contention with the mobile app. A failed read keeps
+        the previous inventory.
         """
-        try:
-            inventory = await self.system.read_inventory()
-        except DaitemError as err:
+        inventory = snapshot.inventory
+        err = snapshot.errors.get("inventory")
+        if inventory is None:
             if not self._inventory_failed:
                 # Warn once per outage rather than on every cycle.
                 _LOGGER.warning("Could not read the Daitem device inventory: %s", err)

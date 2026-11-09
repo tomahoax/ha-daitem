@@ -1,7 +1,8 @@
 """Diagnostics download, meant to be safe to attach to a GitHub issue.
 
-Everything here goes through `redaction`: the credentials and the refresh token never
-appear, serial numbers and device names are kept only partially.
+Everything here goes through pydaitem's redaction, the one the library applies to its own
+dumps: the credentials and the refresh token never appear, serial numbers and device names
+are kept only partially.
 
 The raw answers of every read that matters (automations, cameras, clips, widgets,
 scenarios, the event log...) are fetched again when the file is downloaded, through
@@ -21,12 +22,11 @@ from typing import Any
 
 from homeassistant.const import CONF_EMAIL
 from homeassistant.core import HomeAssistant
-from pydaitem import DaitemError, Inventory, SystemStatus
+from pydaitem import DaitemError, Inventory, SystemStatus, redact, redact_identifier
 
 from .automatism import entity_kind
 from .const import CONF_SYSTEM_ID
 from .coordinator import DaitemConfigEntry
-from .redaction import partial, redact
 
 
 async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: DaitemConfigEntry) -> dict[str, Any]:
@@ -38,8 +38,8 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: DaitemC
 
     diagnostics: dict[str, Any] = {
         "entry": {
-            "title": partial(entry.title),
-            "email": partial(str(entry.data.get(CONF_EMAIL, ""))),
+            "title": redact_identifier(entry.title),
+            "email": redact_identifier(str(entry.data.get(CONF_EMAIL, ""))),
             "system_id": entry.data.get(CONF_SYSTEM_ID),
             "options": redact(dict(entry.options)),
             "state": str(entry.state),
@@ -116,7 +116,7 @@ async def _raw_api(coordinator: Any) -> dict[str, Any]:
     if system is None:
         return {"error": "no installation set up"}
     try:
-        return redact(await system.collect_raw(logbook_entries=5))  # type: ignore[no-any-return]
+        return await system.collect_raw(logbook_entries=5)  # type: ignore[no-any-return]
     except DaitemError as err:
         return {"error": f"{type(err).__name__}: {err}"}
 
@@ -151,7 +151,7 @@ def _inventory_diagnostics(inventory: Inventory | None) -> dict[str, Any] | None
 
     return {
         "central_type": inventory.central_type,
-        "central_serial": partial(inventory.central_serial),
+        "central_serial": redact_identifier(inventory.central_serial),
         "has_io": inventory.has_io,
         "central_faults": sorted(fault.value for fault in inventory.central_anomalies.faults),
         "central_unknown_anomaly_keys": sorted(inventory.central_anomalies.unknown_keys),

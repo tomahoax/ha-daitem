@@ -12,7 +12,7 @@ from unittest.mock import AsyncMock
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
-from pydaitem import Camera, Clip, DaitemForbiddenError, Extras, LogEntry
+from pydaitem import Camera, Clip, DaitemForbiddenError, Extras, LogEntry, redact
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from conftest import ENTRY_DATA
@@ -40,9 +40,9 @@ async def setup(hass: HomeAssistant, mock_client: AsyncMock, extras: Extras, log
     mock_client.system.read_extras.return_value = extras
     if log is not None:
         if isinstance(log, Exception):
-            mock_client.system.read_logbook.side_effect = log
+            mock_client.system.logbook.read.side_effect = log
         else:
-            mock_client.system.read_logbook.return_value = log
+            mock_client.system.logbook.read.return_value = log
     entry = MockConfigEntry(domain=DOMAIN, title="Home", data=ENTRY_DATA, unique_id="123456")
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
@@ -90,7 +90,7 @@ async def test_a_new_entry_fires_an_event(hass: HomeAssistant, mock_client: Asyn
     newer = LogEntry.from_json(
         {"date": "2026-09-07T18:30", "title": "logEvent.9.label1", "details": [{"message": "m"}]}
     )
-    mock_client.system.read_logbook.return_value = [newer, *LOG]
+    mock_client.system.logbook.read.return_value = [newer, *LOG]
     await entry.runtime_data.event_log.async_refresh()
     await hass.async_block_till_done()
     state = hass.states.get("event.alarm_panel_home_event_log")
@@ -109,11 +109,14 @@ async def test_a_restricted_account_gets_no_event_log(hass: HomeAssistant, mock_
 
 
 async def test_diagnostics_carry_the_raw_answers_redacted(hass: HomeAssistant, mock_client: AsyncMock) -> None:
-    mock_client.system.collect_raw.return_value = {
-        "system_id": 123456,
-        "payloads": {"cameras": {"cameras": [CAMERA.raw]}, "automatisms": {"automatisms": []}},
-        "errors": {"logbook": "DaitemForbiddenError: owner only"},
-    }
+    # Redacted, as the library returns it: the integration must not undo that.
+    mock_client.system.collect_raw.return_value = redact(
+        {
+            "system_id": 123456,
+            "payloads": {"cameras": {"cameras": [CAMERA.raw]}, "automatisms": {"automatisms": []}},
+            "errors": {"logbook": "DaitemForbiddenError: owner only"},
+        }
+    )
     entry = await setup(hass, mock_client, Extras(automatisms=[], cameras=[CAMERA], clips=[NEW]))
     diagnostics = await async_get_config_entry_diagnostics(hass, entry)
     dumped = json.dumps(diagnostics)

@@ -8,11 +8,12 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock
 
+import pytest
 from homeassistant import config_entries
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
-from pydaitem import DaitemAuthError, DaitemError, System
+from pydaitem import DaitemAuthError, DaitemBadCodeError, DaitemError, DaitemSessionBusyError, System
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.daitem.const import CONF_MASTER_CODE, CONF_SYSTEM_ID, DOMAIN
@@ -64,6 +65,32 @@ async def test_cannot_connect(hass: HomeAssistant, mock_client: AsyncMock) -> No
 
     assert result["type"] is FlowResultType.FORM
     assert result["errors"] == {"base": "cannot_connect"}
+
+
+@pytest.mark.parametrize(
+    ("error", "expected"),
+    [
+        (DaitemBadCodeError("transmitter.connection.badpincode"), "invalid_code"),
+        # The mobile app holds the panel: the code is unchecked, not wrong.
+        (DaitemSessionBusyError("iPhone"), "panel_busy"),
+        (DaitemError("down"), "cannot_connect"),
+    ],
+)
+async def test_the_alarm_code_is_checked_before_saving(
+    hass: HomeAssistant, mock_client: AsyncMock, error: DaitemError, expected: str
+) -> None:
+    mock_client.system.panel.check_code.side_effect = error
+    result = await _start(hass)
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], USER_INPUT)
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "user"
+    assert result["errors"] == {"base": expected}
+
+    # Corrected, the same flow goes through.
+    mock_client.system.panel.check_code.side_effect = None
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], USER_INPUT)
+    assert result["type"] is FlowResultType.CREATE_ENTRY
 
 
 async def test_no_system(hass: HomeAssistant, mock_client: AsyncMock) -> None:

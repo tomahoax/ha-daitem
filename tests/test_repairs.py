@@ -27,7 +27,7 @@ async def test_occasional_session_busy_raises_nothing(
     hass: HomeAssistant, entry: MockConfigEntry, mock_client: AsyncMock, issue_registry: ir.IssueRegistry
 ) -> None:
     """Another device reading the panel once is routine, not something to report."""
-    mock_client.system.read_status.side_effect = DaitemSessionBusyError("owner")
+    mock_client.system.panel.read.side_effect = DaitemSessionBusyError("owner")
     await entry.runtime_data.async_refresh()
     await hass.async_block_till_done()
 
@@ -39,7 +39,7 @@ async def test_persistent_session_busy_is_reported_then_cleared(
 ) -> None:
     """Held for several cycles in a row, the frozen state deserves an explanation."""
     coordinator = entry.runtime_data
-    mock_client.system.read_status.side_effect = DaitemSessionBusyError("owner")
+    mock_client.system.panel.read.side_effect = DaitemSessionBusyError("owner")
     for _ in range(SESSION_BUSY_ISSUE_THRESHOLD):
         await coordinator.async_refresh()
     await hass.async_block_till_done()
@@ -49,7 +49,7 @@ async def test_persistent_session_busy_is_reported_then_cleared(
     assert issue.translation_key == "session_busy"
     assert issue.is_fixable is False
 
-    mock_client.system.read_status.side_effect = None
+    mock_client.system.panel.read.side_effect = None
     await coordinator.async_refresh()
     await hass.async_block_till_done()
 

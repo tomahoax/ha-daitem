@@ -41,7 +41,7 @@ class DaitemEventLogCoordinator(DataUpdateCoordinator[list[LogEntry]]):
 
     async def _async_update_data(self) -> list[LogEntry]:
         try:
-            return await self.system.read_logbook()
+            return await self.system.logbook.read()
         except DaitemForbiddenError as err:
             self.forbidden = True
             self.update_interval = None

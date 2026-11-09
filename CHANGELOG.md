@@ -22,6 +22,20 @@ Beta, for installations with automations or cameras. Requires pydaitem 0.3.0b1.
   what each automation became. Camera access details, uids, labels and addresses are
   masked.
 
+### Changed
+
+- Follows pydaitem 0.3.0b1: the coordinator reads the state and the inventory in one call,
+  so a panel busy with the mobile app no longer freezes fault reporting.
+- What happens on an error is decided by the error's remedy, as pydaitem states it. A
+  refused alarm code now opens the reauth form instead of failing every cycle, and a
+  missing right no longer opens it for nothing. Command failures show a translated message
+  (English and French), and a command the panel did not confirm says to check the state
+  before sending it again.
+- The setup and reauth forms check the alarm code on the panel before saving it. A panel
+  held by the mobile app is reported as such, not as a wrong code.
+- Redaction comes from pydaitem, which applies it to its own dumps as well.
+- "Enable debug logging" now captures the library's lines too (`loggers` in the manifest).
+
 ### Notes
 
 - Built without the hardware: see "Automations, cameras and clips: beta, built blind" in

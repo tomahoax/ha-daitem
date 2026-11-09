@@ -67,7 +67,7 @@ def _payload() -> dict:
 
 @pytest.fixture
 async def populated(hass: HomeAssistant, mock_client: AsyncMock) -> MockConfigEntry:
-    mock_client.system.read_inventory.return_value = Inventory.from_json(_payload())
+    mock_client.system.inventory.read.return_value = Inventory.from_json(_payload())
     entry = MockConfigEntry(domain=DOMAIN, title="Villa", data=ENTRY_DATA, unique_id="villa")
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)

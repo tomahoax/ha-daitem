@@ -28,7 +28,9 @@
     "error": {
       "cannot_connect": "Connexion au service Daitem impossible.",
       "invalid_auth": "Adresse e-mail ou mot de passe incorrect.",
+      "invalid_code": "La centrale a refusé ce code d'alarme.",
       "no_system": "Aucune installation n'est associée à ce compte.",
+      "panel_busy": "Un autre appareil, en général l'app Daitem, utilise l'alarme : le code n'a pas pu être vérifié. Fermez l'app et réessayez.",
       "unknown": "Erreur inattendue."
     },
     "abort": {
@@ -127,6 +129,35 @@
     "arm_modes_undiscovered": {
       "title": "Seul l'armement total est disponible",
       "description": "Home Assistant n'a pas pu lire les modes d'armement pris en charge par cette installation, seul l'armement total est donc proposé pour le moment. C'est généralement que la session du panneau était occupée par un autre appareil, ou que le panneau était momentanément injoignable, au démarrage de l'intégration.\n\nLa lecture est réessayée automatiquement aux cycles suivants. Fermez l'application Daitem sur votre téléphone si elle est ouverte, et l'armement « présence » revient de lui-même en quelques minutes."
+    }
+  },
+  "exceptions": {
+    "session_busy": {
+      "message": "Un autre appareil, en général l'app Daitem, utilise l'alarme. Fermez l'app et réessayez."
+    },
+    "rate_limited": {
+      "message": "Daitem refuse les requêtes pour le moment. Réessayez dans quelques minutes."
+    },
+    "unreachable": {
+      "message": "Daitem n'a pas répondu. Réessayez dans un instant."
+    },
+    "auth": {
+      "message": "Le compte Daitem a été refusé. Saisissez de nouveau le mot de passe depuis la page de l'intégration."
+    },
+    "bad_code": {
+      "message": "La centrale a refusé le code d'alarme. Saisissez-le de nouveau depuis la page de l'intégration."
+    },
+    "not_permitted": {
+      "message": "Ce compte Daitem n'a pas le droit de faire cela."
+    },
+    "transmitter_offline": {
+      "message": "Le transmetteur de l'alarme est injoignable."
+    },
+    "check_state": {
+      "message": "La centrale n'a pas confirmé la commande, qui a peut-être été exécutée. Vérifiez l'état de l'alarme avant de réessayer."
+    },
+    "error": {
+      "message": "Daitem a refusé la demande : {error}"
     }
   }
 }

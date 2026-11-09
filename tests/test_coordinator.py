@@ -19,10 +19,13 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from pydaitem import (
     ArmMode,
+    DaitemBadCodeError,
     DaitemError,
     DaitemForbiddenError,
     DaitemSessionBusyError,
+    DaitemSessionRestrictedError,
     Inventory,
+    Remedy,
     SystemStatus,
     TokenStore,
 )
@@ -79,7 +82,7 @@ async def test_session_busy_keeps_last_known_state(
     coordinator = entry.runtime_data
     assert coordinator.data.status.state == "off"
 
-    mock_client.system.read_status.side_effect = DaitemSessionBusyError("owner")
+    mock_client.system.panel.read.side_effect = DaitemSessionBusyError("owner")
     await coordinator.async_refresh()
     await hass.async_block_till_done()
 
@@ -100,14 +103,41 @@ async def test_forbidden_on_connect_starts_reauth(
     Regression: it used to fall through to a plain UpdateFailed, leaving the user stuck
     in "Failed setup, will retry" with no way to correct the code from the UI.
     """
-    mock_client.system.read_status.side_effect = DaitemForbiddenError(
-        "GET /systems/123456/state: access denied for this account"
+    # What pydaitem raises for a bare 403 on connect: the remedy, not the class, decides.
+    mock_client.system.panel.read.side_effect = DaitemForbiddenError(
+        "POST /topaze/v5/systems/123456/connect: access denied for this account",
+        remedy=Remedy.ASK_CODE,
     )
     await entry.runtime_data.async_refresh()
     await hass.async_block_till_done()
 
     flows = hass.config_entries.flow.async_progress_by_handler(DOMAIN)
     assert any(flow["context"].get("source") == "reauth" for flow in flows)
+
+
+async def test_a_refused_code_starts_reauth(
+    hass: HomeAssistant, entry: MockConfigEntry, mock_client: AsyncMock
+) -> None:
+    """Regression: `badpincode` used to end in UpdateFailed forever, never in reauth."""
+    mock_client.system.panel.read.side_effect = DaitemBadCodeError("transmitter.connection.badpincode")
+    await entry.runtime_data.async_refresh()
+    await hass.async_block_till_done()
+
+    flows = hass.config_entries.flow.async_progress_by_handler(DOMAIN)
+    assert any(flow["context"].get("source") == "reauth" for flow in flows)
+
+
+async def test_a_missing_right_does_not_start_reauth(
+    hass: HomeAssistant, entry: MockConfigEntry, mock_client: AsyncMock
+) -> None:
+    """A password typed again cannot grant a right: the cycle fails, and no form opens."""
+    mock_client.system.panel.read.side_effect = DaitemSessionRestrictedError("not now")
+    await entry.runtime_data.async_refresh()
+    await hass.async_block_till_done()
+
+    assert entry.runtime_data.last_update_success is False
+    flows = hass.config_entries.flow.async_progress_by_handler(DOMAIN)
+    assert not any(flow["context"].get("source") == "reauth" for flow in flows)
 
 
 async def test_polling_speeds_up_while_arming(
@@ -117,11 +147,11 @@ async def test_polling_speeds_up_while_arming(
     coordinator = entry.runtime_data
     assert coordinator.update_interval == timedelta(seconds=DEFAULT_SCAN_INTERVAL)
 
-    mock_client.system.read_status.return_value = SystemStatus.from_json({"systemState": "tempo", "groups": []})
+    mock_client.system.panel.read.return_value = SystemStatus.from_json({"systemState": "tempo", "groups": []})
     await coordinator.async_refresh()
     assert coordinator.update_interval == timedelta(seconds=ARMING_SCAN_INTERVAL)
 
-    mock_client.system.read_status.return_value = SystemStatus.from_json({"systemState": "on", "groups": []})
+    mock_client.system.panel.read.return_value = SystemStatus.from_json({"systemState": "on", "groups": []})
     await coordinator.async_refresh()
     assert coordinator.update_interval == timedelta(seconds=DEFAULT_SCAN_INTERVAL)
 
@@ -136,13 +166,13 @@ async def test_a_failed_cycle_retries_fast_then_recovers(
     from the panel ("Unexpected null command response") among 765 successful reads.
     """
     coordinator = entry.runtime_data
-    mock_client.system.read_status.side_effect = DaitemError("mediator.sendcommand.answer.notparsed")
+    mock_client.system.panel.read.side_effect = DaitemError("mediator.sendcommand.answer.notparsed")
     await coordinator.async_refresh()
 
     assert coordinator.last_update_success is False
     assert coordinator.update_interval == timedelta(seconds=RETRY_SCAN_INTERVAL)
 
-    mock_client.system.read_status.side_effect = None
+    mock_client.system.panel.read.side_effect = None
     await coordinator.async_refresh()
 
     assert coordinator.last_update_success is True
@@ -154,7 +184,7 @@ async def test_a_lasting_outage_stops_retrying_fast(
 ) -> None:
     """Past the retry budget the panel is unreachable, not glitching: stop hammering it."""
     coordinator = entry.runtime_data
-    mock_client.system.read_status.side_effect = DaitemError("down")
+    mock_client.system.panel.read.side_effect = DaitemError("down")
 
     for _ in range(RETRY_ATTEMPTS):
         await coordinator.async_refresh()
@@ -169,7 +199,7 @@ async def test_a_busy_session_does_not_trigger_the_fast_retry(
 ) -> None:
     """A busy session hands the last known state back, so there is nothing to recover."""
     coordinator = entry.runtime_data
-    mock_client.system.read_status.side_effect = DaitemSessionBusyError("owner")
+    mock_client.system.panel.read.side_effect = DaitemSessionBusyError("owner")
     await coordinator.async_refresh()
 
     assert coordinator.last_update_success is True
@@ -185,11 +215,11 @@ async def test_a_busy_session_during_arming_keeps_the_five_second_pace(
     `_note_failed_cycle`. This covers the busy path only.
     """
     coordinator = entry.runtime_data
-    mock_client.system.read_status.return_value = SystemStatus.from_json({"systemState": "tempo", "groups": []})
+    mock_client.system.panel.read.return_value = SystemStatus.from_json({"systemState": "tempo", "groups": []})
     await coordinator.async_refresh()
     assert coordinator.update_interval == timedelta(seconds=ARMING_SCAN_INTERVAL)
 
-    mock_client.system.read_status.side_effect = DaitemSessionBusyError("owner")
+    mock_client.system.panel.read.side_effect = DaitemSessionBusyError("owner")
     await coordinator.async_refresh()
     assert coordinator.update_interval == timedelta(seconds=ARMING_SCAN_INTERVAL)
 
@@ -203,15 +233,15 @@ async def test_leaving_the_retry_pace_mid_arming_returns_to_five_seconds(
     five minutes, freezing the alarm on "arming" long after the delay had settled.
     """
     coordinator = entry.runtime_data
-    mock_client.system.read_status.return_value = SystemStatus.from_json({"systemState": "tempo", "groups": []})
+    mock_client.system.panel.read.return_value = SystemStatus.from_json({"systemState": "tempo", "groups": []})
     await coordinator.async_refresh()
     assert coordinator.update_interval == timedelta(seconds=ARMING_SCAN_INTERVAL)
 
-    mock_client.system.read_status.side_effect = DaitemError("glitch")
+    mock_client.system.panel.read.side_effect = DaitemError("glitch")
     await coordinator.async_refresh()
     assert coordinator.update_interval == timedelta(seconds=RETRY_SCAN_INTERVAL)
 
-    mock_client.system.read_status.side_effect = DaitemSessionBusyError("owner")
+    mock_client.system.panel.read.side_effect = DaitemSessionBusyError("owner")
     await coordinator.async_refresh()
     assert coordinator.update_interval == timedelta(seconds=ARMING_SCAN_INTERVAL)
 
@@ -225,7 +255,7 @@ async def test_a_command_answering_clears_the_retry_budget(
     full five minutes even though the panel had just answered.
     """
     coordinator = entry.runtime_data
-    mock_client.system.read_status.side_effect = DaitemError("down")
+    mock_client.system.panel.read.side_effect = DaitemError("down")
     for _ in range(RETRY_ATTEMPTS + 1):
         await coordinator.async_refresh()
     assert coordinator.update_interval == timedelta(seconds=DEFAULT_SCAN_INTERVAL)
@@ -351,11 +381,11 @@ async def test_unmapped_partial_states_show_as_unknown_not_guessed(
     that preset actually means beyond "presence", so the entity honestly shows unknown
     rather than assuming it means "night".
     """
-    mock_client.system.read_status.return_value = SystemStatus.from_json({"systemState": "tempo1", "groups": []})
+    mock_client.system.panel.read.return_value = SystemStatus.from_json({"systemState": "tempo1", "groups": []})
     await entry.runtime_data.async_refresh()
     assert hass.states.get("alarm_control_panel.alarm_panel_home").state == "arming"
 
-    mock_client.system.read_status.return_value = SystemStatus.from_json({"systemState": "partial1", "groups": []})
+    mock_client.system.panel.read.return_value = SystemStatus.from_json({"systemState": "partial1", "groups": []})
     await entry.runtime_data.async_refresh()
     assert hass.states.get("alarm_control_panel.alarm_panel_home").state == "unknown"
 
@@ -401,7 +431,7 @@ async def test_faults_follow_the_inventory(hass: HomeAssistant, entry: MockConfi
     power = "binary_sensor.alarm_panel_home_main_power_supply"
     assert hass.states.get(power).state == "off"
 
-    mock_client.system.read_inventory.return_value = Inventory.from_json(
+    mock_client.system.inventory.read.return_value = Inventory.from_json(
         {
             "central": {
                 "serialNumber": "SN-TEST",
@@ -420,7 +450,7 @@ async def test_faults_follow_the_inventory(hass: HomeAssistant, entry: MockConfi
 
 async def test_detector_faults_become_their_own_device(hass: HomeAssistant, mock_client: AsyncMock) -> None:
     """Each detector reporting an anomaly gets its own device, not just the panel's."""
-    mock_client.system.read_inventory.return_value = Inventory.from_json(
+    mock_client.system.inventory.read.return_value = Inventory.from_json(
         {
             "central": {"serialNumber": "SN-CENTRAL", "type": "INTRUSION", "anomalies": {}},
             "genericSensors": {
@@ -458,7 +488,7 @@ async def test_secondary_detector_faults_are_created_but_hidden(
     hass: HomeAssistant, mock_client: AsyncMock, entity_registry: er.EntityRegistry
 ) -> None:
     """Only battery and radio clutter the entity list; the rest stay available but hidden."""
-    mock_client.system.read_inventory.return_value = Inventory.from_json(
+    mock_client.system.inventory.read.return_value = Inventory.from_json(
         {
             "central": {"serialNumber": "SN-CENTRAL", "type": "INTRUSION", "anomalies": {}},
             "genericSensors": {
@@ -505,7 +535,7 @@ async def test_reinstall_does_not_leave_hidden_faults_visible(
     reproducing the real removal flow needs the row to survive it, which the test setup
     below does not exercise.
     """
-    mock_client.system.read_inventory.return_value = Inventory.from_json(
+    mock_client.system.inventory.read.return_value = Inventory.from_json(
         {
             "central": {"serialNumber": "SN-CENTRAL", "type": "INTRUSION", "anomalies": {}},
             "genericSensors": {
@@ -547,7 +577,7 @@ async def test_entities_exist_even_if_the_inventory_fails(
     hass: HomeAssistant, mock_client: AsyncMock, caplog: pytest.LogCaptureFixture
 ) -> None:
     """A failing inventory must not permanently deprive the user of fault entities."""
-    mock_client.system.read_inventory.side_effect = DaitemError("inventory unavailable")
+    mock_client.system.inventory.read.side_effect = DaitemError("inventory unavailable")
     other = MockConfigEntry(domain=DOMAIN, title="Annexe", data=ENTRY_DATA, unique_id="999")
     other.add_to_hass(hass)
     with caplog.at_level(logging.WARNING):

@@ -6,12 +6,22 @@ No test touches a real alarm: the pydaitem library is always replaced by a doubl
 from __future__ import annotations
 
 from collections.abc import Generator
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, create_autospec, patch
 
 import pytest
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
 from homeassistant.core import HomeAssistant
-from pydaitem import ArmMode, Extras, Inventory, System, SystemStatus
+from pydaitem import (
+    ArmMode,
+    DaitemClient,
+    DaitemError,
+    DaitemSystem,
+    Extras,
+    Inventory,
+    Snapshot,
+    System,
+    SystemStatus,
+)
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.daitem.const import CONF_MASTER_CODE, CONF_SYSTEM_ID, DOMAIN
@@ -87,21 +97,40 @@ def mock_client(mock_system: System, mock_status: SystemStatus, mock_inventory: 
     client.login.return_value = None
     client.account.list_systems.return_value = [mock_system]
 
-    system = AsyncMock()
+    # Shaped on a real DaitemSystem: a method the library renamed or removed fails here,
+    # instead of answering whatever the test configured as a bare AsyncMock would.
+    system = create_autospec(DaitemSystem(DaitemClient("a@example.test", "p"), mock_system.id, "0000"), instance=True)
     system.system_id = mock_system.id
-    system.read_status.return_value = mock_status
-    system.read_inventory.return_value = mock_inventory
+    system.panel.read.return_value = mock_status
+    system.inventory.read.return_value = mock_inventory
+    system.panel.check_code.return_value = None
+
+    async def read_snapshot() -> Snapshot:
+        """The library's own logic, over the two reads the tests configure."""
+        snapshot = Snapshot()
+        try:
+            snapshot.inventory = await system.inventory.read()
+        except DaitemError as err:
+            snapshot.errors["inventory"] = err
+        try:
+            snapshot.status = await system.panel.read()
+        except DaitemError as err:
+            snapshot.errors["status"] = err
+        return snapshot
+
+    system.read_snapshot.side_effect = read_snapshot
     system.capabilities.arm_modes.return_value = frozenset({ArmMode.AWAY, ArmMode.PRESENCE})
     system.capabilities.discovered = True
     # Most installations have no automation, camera or clip: that is the default here.
     system.read_extras.return_value = Extras(automatisms=[], cameras=[], clips=[])
-    system.read_logbook.return_value = []
+    system.logbook.read.return_value = []
     system.collect_raw.return_value = {"system_id": mock_system.id, "payloads": {}, "errors": {}}
 
     with (
         patch("custom_components.daitem.config_flow.DaitemClient", return_value=client),
         patch("custom_components.daitem.DaitemClient", return_value=client) as client_cls,
         patch("custom_components.daitem.DaitemSystem", return_value=system),
+        patch("custom_components.daitem.config_flow.DaitemSystem", return_value=system),
     ):
         client.system = system
         # Exposed so tests can assert how the integration builds the client. Without it

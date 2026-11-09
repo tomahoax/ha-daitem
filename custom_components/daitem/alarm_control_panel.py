@@ -11,13 +11,13 @@ from homeassistant.components.alarm_control_panel import (
     AlarmControlPanelState,
 )
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
-from pydaitem import ArmMode, DaitemError, DaitemSessionBusyError, Inventory, PanelState, SystemStatus
+from pydaitem import ArmMode, DaitemError, Inventory, PanelState, SystemStatus
 
 from .coordinator import DaitemConfigEntry, DaitemCoordinator
 from .device import display_name
 from .entity import DaitemEntity
+from .errors import command_error, needs_reauth
 
 #: Commands are serialised: the panel accepts one session at a time, so two concurrent
 #: commands would collide.
@@ -138,12 +138,10 @@ class DaitemAlarmPanel(DaitemEntity, AlarmControlPanelEntity):
         """
         try:
             status = await action()
-        except DaitemSessionBusyError as err:
-            raise HomeAssistantError(
-                "The alarm is already being controlled by another device. Close the "
-                "Daitem app on your phone and try again."
-            ) from err
         except DaitemError as err:
-            raise HomeAssistantError(f"Daitem command rejected: {err}") from err
+            if needs_reauth(err):
+                # A changed code shows up here first: ask for it rather than fail every time.
+                self.coordinator.config_entry.async_start_reauth(self.hass)
+            raise command_error(err) from err
 
         await self.coordinator.async_apply_command_result(status)

@@ -33,7 +33,7 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr
-from pydaitem import Automatism, DaitemError, DaitemSessionBusyError, Extras
+from pydaitem import Automatism, DaitemCommandError, DaitemError, DaitemSessionBusyError, Extras
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from conftest import ENTRY_DATA
@@ -152,8 +152,10 @@ async def test_an_automation_nothing_fits_is_logged(
 @pytest.mark.parametrize(
     ("error", "message"),
     [
-        (DaitemSessionBusyError("owner"), "another device"),
-        (DaitemError("refused"), "Daitem command rejected"),
+        (DaitemSessionBusyError("owner"), "Another device"),
+        (DaitemError("refused"), "Daitem did not answer"),
+        # The panel may have obeyed: the user must check before sending it again.
+        (DaitemCommandError("no answer", command_status="CMD TIMEOUT"), "may have run"),
     ],
 )
 async def test_a_failed_command_says_why(

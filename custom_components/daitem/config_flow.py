@@ -2,7 +2,8 @@
 
 Two steps: account credentials, then installation choice if the account exposes several.
 The alarm code requested is the one tied to **the account used**, which is not necessarily
-the owner's master code.
+the owner's master code. It is checked on the panel before the entry is saved, so a typo
+shows in the form rather than as a reauth on the first poll.
 """
 
 from __future__ import annotations
@@ -15,7 +16,7 @@ import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry, ConfigFlow, ConfigFlowResult
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from pydaitem import DaitemAuthError, DaitemClient, DaitemError, System
+from pydaitem import DaitemAuthError, DaitemClient, DaitemError, DaitemSystem, Remedy, System
 
 from .const import CONF_MASTER_CODE, CONF_SYSTEM_ID, DOMAIN
 from .tokens import CONF_REFRESH_TOKEN
@@ -38,6 +39,24 @@ STEP_REAUTH_SCHEMA = vol.Schema(
 )
 
 
+async def _check_code(client: DaitemClient, system_id: int, code: str) -> str | None:
+    """The form error when the panel refuses the code or cannot check it, else None.
+
+    Holds the panel for one connect. A panel busy with the mobile app leaves the code
+    unchecked, so the user is asked to close the app rather than told the code is wrong.
+    """
+    try:
+        await DaitemSystem(client, system_id, code).panel.check_code()
+    except DaitemError as err:
+        _LOGGER.debug("Alarm code check failed: %s", err)
+        if err.remedy is Remedy.ASK_CODE:
+            return "invalid_code"
+        if err.code == "session_busy":
+            return "panel_busy"
+        return "cannot_connect"
+    return None
+
+
 # Ignored below: mypy does not follow Home Assistant sources (follow_imports = skip) so
 # it cannot see the ConfigFlow "domain" parameter.
 class DaitemConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
@@ -48,6 +67,7 @@ class DaitemConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
     def __init__(self) -> None:
         self._data: dict[str, Any] = {}
         self._systems: list[System] = []
+        self._client: DaitemClient | None = None
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         errors: dict[str, str] = {}
@@ -75,6 +95,7 @@ class DaitemConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                     errors["base"] = "no_system"
                 else:
                     self._data = dict(user_input)
+                    self._client = client
                     if len(self._systems) == 1:
                         return await self._create_entry(self._systems[0])
                     return await self.async_step_system()
@@ -123,6 +144,10 @@ class DaitemConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                 _LOGGER.exception("Unexpected error during re-authentication")
                 errors["base"] = "unknown"
             else:
+                code_error = await _check_code(client, entry.data[CONF_SYSTEM_ID], user_input[CONF_MASTER_CODE])
+                if code_error is not None:
+                    errors["base"] = code_error
+            if not errors:
                 # Pass a full data mapping rather than data_updates, which merges: the
                 # stored refresh token must be dropped. People re-authenticate precisely
                 # because they changed their password to cut off an old session, and
@@ -141,6 +166,11 @@ class DaitemConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
     async def _create_entry(self, system: System) -> ConfigFlowResult:
         await self.async_set_unique_id(str(system.id))
         self._abort_if_unique_id_configured()
+        assert self._client is not None  # set by the user step, before any installation is chosen
+        code_error = await _check_code(self._client, system.id, self._data[CONF_MASTER_CODE])
+        if code_error is not None:
+            # The code was typed on the first form: that is where it can be corrected.
+            return self.async_show_form(step_id="user", data_schema=STEP_USER_SCHEMA, errors={"base": code_error})
         return self.async_create_entry(
             title=system.name or f"Daitem {system.id}",
             data={**self._data, CONF_SYSTEM_ID: system.id},

@@ -13,12 +13,12 @@ from unittest.mock import AsyncMock
 
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
 from homeassistant.core import HomeAssistant
+from pydaitem import redact
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from conftest import ENTRY_DATA
 from custom_components.daitem.const import CONF_MASTER_CODE, CONF_SYSTEM_ID, DOMAIN
 from custom_components.daitem.diagnostics import async_get_config_entry_diagnostics
-from custom_components.daitem.redaction import redact
 from custom_components.daitem.tokens import CONF_REFRESH_TOKEN
 
 

@@ -28,7 +28,9 @@
     "error": {
       "cannot_connect": "Failed to connect to the Daitem service.",
       "invalid_auth": "Invalid email address or password.",
+      "invalid_code": "The panel refused this alarm code.",
       "no_system": "No installation is linked to this account.",
+      "panel_busy": "Another device, usually the Daitem app, is using the alarm, so the code could not be checked. Close the app and try again.",
       "unknown": "Unexpected error."
     },
     "abort": {
@@ -127,6 +129,35 @@
     "arm_modes_undiscovered": {
       "title": "Only away arming is available",
       "description": "Home Assistant could not read which arming modes this installation supports, so only away arming is offered for now. This usually means the panel session was held by another device, or the panel was briefly unreachable, when the integration started.\n\nIt is retried automatically on the next polling cycles. Close the Daitem app on your phone if it is open, and presence arming comes back on its own within a few minutes."
+    }
+  },
+  "exceptions": {
+    "session_busy": {
+      "message": "Another device, usually the Daitem app, is using the alarm. Close the app and try again."
+    },
+    "rate_limited": {
+      "message": "Daitem is refusing requests for a moment. Try again in a few minutes."
+    },
+    "unreachable": {
+      "message": "Daitem did not answer. Try again in a moment."
+    },
+    "auth": {
+      "message": "The Daitem account was refused. Re-enter the password from the integration page."
+    },
+    "bad_code": {
+      "message": "The panel refused the alarm code. Re-enter it from the integration page."
+    },
+    "not_permitted": {
+      "message": "This Daitem account is not allowed to do that."
+    },
+    "transmitter_offline": {
+      "message": "The alarm's transmitter cannot be reached."
+    },
+    "check_state": {
+      "message": "The panel did not confirm the command, which may have run anyway. Check the alarm state before trying again."
+    },
+    "error": {
+      "message": "Daitem rejected the request: {error}"
     }
   }
 }

@@ -57,7 +57,7 @@ async def test_a_panel_reporting_no_firmware_gets_no_sensors(hass: HomeAssistant
     payload = copy.deepcopy(INVENTORY_PAYLOAD)
     del payload["central"]["firmwareInfo"]
     del payload["central"]["plug"]["firmwareInfo"]
-    mock_client.system.read_inventory.return_value = Inventory.from_json(payload)
+    mock_client.system.inventory.read.return_value = Inventory.from_json(payload)
 
     other = MockConfigEntry(domain=DOMAIN, title="Annexe", data=ENTRY_DATA, unique_id="bare")
     other.add_to_hass(hass)
@@ -75,7 +75,7 @@ async def test_only_detectors_carry_a_group(hass: HomeAssistant, mock_client: As
         {"index": 1, "name": "Kitchen", "serialNumber": "SN-D1", "group": 2, "anomalies": {}}
     ]
     payload["commands"] = [{"index": 1, "name": "Keypad", "serialNumber": "SN-C1", "isInhibitable": True}]
-    mock_client.system.read_inventory.return_value = Inventory.from_json(payload)
+    mock_client.system.inventory.read.return_value = Inventory.from_json(payload)
 
     other = MockConfigEntry(domain=DOMAIN, title="Chalet", data=ENTRY_DATA, unique_id="grouped")
     other.add_to_hass(hass)
@@ -94,7 +94,7 @@ async def test_the_alarm_entity_lists_what_each_group_contains(hass: HomeAssista
         {"index": 2, "name": "Kitchen Radar", "serialNumber": "SN-2", "group": 2, "anomalies": {}},
         {"index": 3, "name": "Front Door", "serialNumber": "SN-3", "group": 1, "anomalies": {}},
     ]
-    mock_client.system.read_inventory.return_value = Inventory.from_json(payload)
+    mock_client.system.inventory.read.return_value = Inventory.from_json(payload)
 
     other = MockConfigEntry(domain=DOMAIN, title="Mas", data=ENTRY_DATA, unique_id="mapping")
     other.add_to_hass(hass)
@@ -118,7 +118,7 @@ async def test_the_group_mapping_reads_like_the_device_pages(hass: HomeAssistant
         {"index": 1, "name": "Cellar", "serialNumber": "SN-1", "group": 10, "anomalies": {}},
         {"index": 2, "name": "", "serialNumber": "SN-2", "group": 2, "anomalies": {}},
     ]
-    mock_client.system.read_inventory.return_value = Inventory.from_json(payload)
+    mock_client.system.inventory.read.return_value = Inventory.from_json(payload)
 
     other = MockConfigEntry(domain=DOMAIN, title="Ferme", data=ENTRY_DATA, unique_id="ordering")
     other.add_to_hass(hass)

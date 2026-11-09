@@ -25,12 +25,12 @@ from pydaitem import (
     AutomatismCategory,
     AutomatismCommand,
     DaitemError,
-    DaitemSessionBusyError,
 )
 
 from .const import DOMAIN
 from .coordinator import DaitemCoordinator
 from .entity import DaitemEntity
+from .errors import command_error, needs_reauth
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -109,10 +109,8 @@ class DaitemAutomatismEntity(DaitemEntity):
             raise HomeAssistantError("This automation cannot do that right now.")
         try:
             await self.coordinator.system.automation.command(automatism, command, position=position)
-        except DaitemSessionBusyError as err:
-            raise HomeAssistantError(
-                "The alarm is already being controlled by another device. Close the Daitem app and retry."
-            ) from err
         except DaitemError as err:
-            raise HomeAssistantError(f"Daitem command rejected: {err}") from err
+            if needs_reauth(err):
+                self.coordinator.config_entry.async_start_reauth(self.hass)
+            raise command_error(err) from err
         self.coordinator.async_follow_up_command()
