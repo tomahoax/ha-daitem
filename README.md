@@ -25,6 +25,21 @@ private API of the Daitem Secure mobile app.
 - Diagnostics download, with credentials and codes redacted.
 - English and French throughout, entity names included.
 
+**Beta (0.6.0b1): automations, cameras and the event log.** Built without access to the
+hardware: please try it and send back your diagnostics (see below).
+
+- **Automations** driven through the alarm, each as its own device: a gate, garage door or
+  shutter becomes a `cover` (open, close, stop and position as it allows), one that only
+  takes an impulse a `button`, a light a `light`, a plug a `switch`.
+- **Cameras** as devices with their status. Live video is not available: the Daitem app
+  plays it through the camera vendor's own SDK, which Home Assistant cannot use. Add an IP
+  camera to Home Assistant directly (ONVIF, RTSP) for its stream.
+- **Latest clip** sensor: when the last recorded clip was taken, on alarm or on demand,
+  and from which device.
+- **Event log** (owner accounts): an `event` entity firing for every new entry, and a
+  "latest event" sensor. Entry titles are the Daitem app's own keys
+  (`logEvent.36.label2`), not readable text yet.
+
 ## Limitations, worth reading before installing
 
 These come from the API, not from the integration.
@@ -46,7 +61,28 @@ cases where waiting five minutes would be unreasonable: during an arming delay, 
 a failed read, so a passing glitch on the panel side clears in about a minute instead of
 leaving the alarm greyed out for a full cycle.
 
-**No history.** Reading it is owner-only; a restricted account is refused.
+**Event log for owners only.** A restricted account is refused, so its entities are left
+out.
+
+**Automations, cameras and clips: beta, built blind.** Every list read while the API was
+mapped came back empty, so these follow the Daitem app's behaviour without a real answer to
+check against. Three assumptions are open, and the diagnostics settle them:
+
+- **A1.** An opening that reports `OFF` is closed, `ON` is open, and a reported position
+  runs from 0 (closed) to 100 (open).
+- **A2.** A gate or garage door that only takes an impulse has no state worth trusting, so
+  it is a button rather than a cover.
+- **A3.** Entities are created at startup: an automation added later in the Daitem app
+  needs a reload of the integration.
+
+Every automation entity declares an assumed state, so both directions stay available even
+if the state reads wrong. They are read every five minutes, and every thirty minutes on an
+installation that has none, so installations without them pay almost nothing.
+
+**Testing the beta.** Download the diagnostics (Settings, Devices and services, Daitem, the
+three dots, Download diagnostics) and attach the file to an issue. It now includes the raw
+answers for automations, cameras, clips, widgets and scenarios, with names, serial numbers,
+e-mail addresses and camera access details masked. Read it before posting anyway.
 
 ## Installation
 
@@ -116,6 +152,9 @@ wrong.
 - [Security and privacy](docs/security-privacy.md): where your credentials go, what is read,
   what ends up in logs.
 - [Dashboard examples](lovelace/): stock Lovelace cards to copy.
+- [Home Assistant gaps](docs/home-assistant-gaps.md): what the integration could still build
+  on pydaitem. Every call the Daitem Secure app makes is in pydaitem's
+  [API map](https://github.com/tomahoax/pydaitem/blob/main/docs/api/README.md).
 
 ## Development
 

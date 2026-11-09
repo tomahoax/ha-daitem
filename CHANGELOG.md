@@ -3,6 +3,37 @@
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and semantic
 versioning.
 
+## [0.6.0b1] - Unreleased
+
+Beta, for installations with automations or cameras. Requires pydaitem 0.3.0b1.
+
+### Added
+
+- Automations driven through the alarm, one device each: gates, garage doors and shutters
+  as covers (or buttons when they only take an impulse), lights as lights, plugs and the
+  rest as switches. Only the commands an automation lists are offered, and its state is
+  read again 5 and 30 seconds after a command.
+- Cameras as devices with a status sensor, and a "latest clip" timestamp sensor. Live
+  video stays out of reach.
+- The event log, for owner accounts: an `event` entity per new entry and a "latest event"
+  sensor, read every fifteen minutes.
+- Diagnostics now carry the raw answers of every read (automations, cameras, clips,
+  widgets, scenarios, schedule, installation record, latest log entries) and a summary of
+  what each automation became. Camera access details, uids, labels and addresses are
+  masked.
+
+### Notes
+
+- Built without the hardware: see "Automations, cameras and clips: beta, built blind" in
+  the README for the open assumptions. Installations without any of these read them every
+  thirty minutes only.
+
+### Release checklist
+
+1. Publish pydaitem 0.3.0b1 on PyPI first: the manifest pins it.
+2. Tag `v0.6.0b1` and publish it as a GitHub pre-release, so HACS offers it only to users
+   who enable beta versions.
+
 ## [0.5.1] - 2026-09-14
 
 ### Fixed
