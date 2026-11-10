@@ -19,6 +19,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from conftest import ENTRY_DATA, INVENTORY_PAYLOAD
 from custom_components.daitem.const import DOMAIN
+from custom_components.daitem.device import display_name, firmware_version
 
 #: `system_id` comes from the panel the library reports, not from the config entry.
 PANEL_KEY = "123456"
@@ -139,3 +140,64 @@ async def test_a_control_reports_no_fault_sensor(
     assert hass.states.get("binary_sensor.remote_1_radio") is None
     # The detector, which does report them, still gets its own.
     assert hass.states.get("binary_sensor.front_door_battery") is not None
+
+
+async def test_every_family_of_the_inventory_gets_a_name_of_its_own(
+    hass: HomeAssistant, mock_client: AsyncMock, device_registry: dr.DeviceRegistry
+) -> None:
+    """Unnamed devices of different families share index 1: their names must still differ.
+
+    Sirens, the box and the triggers joined the inventory with pydaitem 0.3. Before, an
+    unnamed siren and an unnamed fire trigger would both have read "Device 1".
+    """
+    payload = _payload()
+    payload["sirens"] = [{"index": 1, "name": "", "serialNumber": "SN-S1", "type": "SIREN", "anomalies": {}}]
+    payload["box"] = {
+        "serialNumber": "SN-BOX",
+        "type": "BOX",
+        "anomalies": {},
+        "firmwareInfo": {"firmwares": [{"firmwareType": "SOFT", "currentVersion": {"releaseVersion": "2.1.0"}}]},
+    }
+    payload["genericSensors"]["fireTriggers"] = [
+        {"index": 1, "name": "", "serialNumber": "SN-F1", "type": "FIRE", "isTriggered": True, "anomalies": {}}
+    ]
+    payload["genericSensors"]["ppmsTriggers"] = [
+        {"index": 1, "name": "", "serialNumber": "SN-P1", "type": "PPMS", "isTriggered": False, "anomalies": {}}
+    ]
+    mock_client.system.inventory.read.return_value = Inventory.from_json(payload)
+    entry = MockConfigEntry(domain=DOMAIN, title="Villa", data=ENTRY_DATA, unique_id="villa")
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    fire = device_registry.async_get_device_by_identifier((DOMAIN, f"{PANEL_KEY}_fire_trigger_1"), entry.entry_id)
+    ppms = device_registry.async_get_device_by_identifier((DOMAIN, f"{PANEL_KEY}_ppms_trigger_1"), entry.entry_id)
+    assert fire is not None and fire.name == "Fire trigger 1"
+    assert ppms is not None and ppms.name == "PPMS trigger 1"
+
+    smoke = hass.states.get("binary_sensor.fire_trigger_1_triggered")
+    assert smoke is not None
+    assert smoke.state == "on"
+    assert smoke.attributes["device_class"] == "smoke"
+    safety = hass.states.get("binary_sensor.ppms_trigger_1_triggered")
+    assert safety is not None
+    assert safety.state == "off"
+    assert safety.attributes["device_class"] == "safety"
+
+
+def test_a_device_reads_its_firmware_and_a_name_without_index() -> None:
+    """The box carries no index: it is "Box", and its software version reaches the registry."""
+    payload = copy.deepcopy(INVENTORY_PAYLOAD)
+    payload["box"] = {
+        "serialNumber": "SN-BOX",
+        "type": "BOX",
+        "firmwareInfo": {
+            "firmwares": [
+                {"firmwareType": "RADIO", "currentVersion": {"releaseVersion": "15"}},
+                {"firmwareType": "SOFT", "currentVersion": {"releaseVersion": "2.1.0"}},
+            ]
+        },
+    }
+    box = next(d for d in Inventory.from_json(payload).devices if d.kind == "box")
+    assert display_name(box) == "Box"
+    assert firmware_version(box) == "2.1.0"

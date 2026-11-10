@@ -20,7 +20,9 @@ private API of the Daitem Secure mobile app.
   and free again.
 - **Inhibition** sensor per device: a detector deliberately neutralised is visible without
   going looking for it.
-- Remotes and keypads exposed as devices too, and the panel's firmware versions.
+- Remotes, keypads, sirens, transmitters, transceivers and the box exposed as devices too,
+  as soon as they report a fault or can be inhibited, and the panel's firmware versions.
+- Fire and PPMS triggers say whether they have gone off (`smoke` and `safety` sensors).
 - Group membership, as a sensor per detector and as a mapping on the alarm entity.
 - Diagnostics download, with credentials and codes redacted.
 - English and French throughout, entity names included.

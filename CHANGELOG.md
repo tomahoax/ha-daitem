@@ -21,6 +21,10 @@ Beta, for installations with automations or cameras. Requires pydaitem 0.3.0b1.
   widgets, scenarios, schedule, installation record, latest log entries) and a summary of
   what each automation became. Camera access details, uids, labels and addresses are
   masked.
+- Every family of the inventory as a device: sirens, transmitters, transceivers, the box,
+  fire and PPMS triggers, with the fault sensors they report. A trigger says whether it has gone off
+  (`smoke` or `safety`). A device left unnamed is called after its family ("Siren 1"), and
+  its software version reaches the device page when it reports one.
 
 ### Changed
 

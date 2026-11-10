@@ -26,8 +26,9 @@ COMPONENT = Path(__file__).parent.parent / "custom_components" / "daitem"
 #: panel and by detectors alike, and share a single key on purpose.
 FAULT_KEYS = sorted({fault.value for fault in (*CENTRAL_FAULTS, *DETECTOR_FAULTS)})
 
-#: Inhibition is not a fault, but it is a binary sensor and needs the same treatment.
-BINARY_SENSOR_KEYS = sorted([*FAULT_KEYS, "inhibited"])
+#: Inhibition and triggers are not faults, but they are binary sensors and need the same
+#: treatment.
+BINARY_SENSOR_KEYS = sorted([*FAULT_KEYS, "inhibited", "triggered"])
 
 SENSOR_KEYS = sorted([*(d.key for d in FIRMWARES), "group", "camera_status", "last_clip", "last_event"])
 

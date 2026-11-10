@@ -15,12 +15,12 @@ pydaitem 0.3.0 also brings these, which the integration does not use yet:
 
 | Library change | What the integration should do |
 |---|---|
-| `DaitemBadCodeError` (the panel refused the alarm code) | Start a reauthentication flow for the code instead of retrying |
+| ~~`DaitemBadCodeError` (the panel refused the alarm code)~~ | Done in 0.6.0b1: the reauth form asks for the code |
 | `PanelState.MAINTENANCE` (installation or test mode) | Show the alarm entity as unavailable, or expose the mode as an attribute |
 | `PanelState.ARMED_PARTIAL_2` now mapped from `partial2` | Give the second named preset an alarm state (`armed_custom_bypass`) |
 | `DaitemTransmitterOfflineError` | Mark entities unavailable with that reason, without opening a session |
-| `DaitemRateLimitedError` | Lengthen the coordinator interval for a while |
-| `DaitemCommandError.command_status` is `TIMEOUT` | Refresh the state before reporting a failure, since the command may have run |
+| ~~`DaitemRateLimitedError`~~ | Done in 0.6.0b1: the last state is kept and the pace unchanged, since pydaitem pauses on its own |
+| ~~`DaitemCommandError.command_status` is `TIMEOUT`~~ | Done in 0.6.0b1: the message says to check the state before sending again |
 
 ## New features, from most to least useful
 
@@ -93,21 +93,21 @@ nothing to add are left out. The library side of each one is in pydaitem's
 | Group | Group sensor per detector, groups on the alarm entity | One switch per group (arm_groups already exists) |
 | Alarm | None | Create alert and scenario entities only when the panel allows them |
 | SystemCode | None | Config flow checks the code length |
-| SystemProducts | Inventory read at startup | Devices and fault sensors for every family |
+| SystemProducts | Inventory read every cycle, a device per family | Done in 0.6.0b1 |
 | Sensor | Device, fault sensors, inhibition sensor | Inhibition switch per inhibitable detector |
-| Siren | None | Siren devices with fault sensors |
+| Siren | Device with its fault sensors | Done in 0.6.0b1 |
 | Transmitter | Transmitter firmware sensor | Transmitter device with its faults |
-| Transceiver | None | Transceiver devices with fault sensors |
-| Box | None | Box device with its faults |
-| FireTrigger | None | binary_sensor (smoke) per fire trigger |
-| PpmsTrigger | None | binary_sensor (safety) per trigger |
+| Transceiver | Device with its fault sensors | Done in 0.6.0b1 |
+| Box | Device with its faults and software version | Done in 0.6.0b1 |
+| FireTrigger | `binary_sensor` (smoke) per trigger | Done in 0.6.0b1 |
+| PpmsTrigger | `binary_sensor` (safety) per trigger | Done in 0.6.0b1 |
 | Firmware | Firmware version sensors | update entity per device with a newer firmware |
-| Automatism | None | cover for shutters, gates, garage doors; light; switch for plugs |
+| Automatism | `cover`, `light`, `switch` or `button` per automation | Done in 0.6.0b1 |
 | Scenario | None | button per manual scenario |
 | ScenarioAction | None | Actions as attributes of the scenario button |
 | ProgramList | None | switch to turn the schedule on and off |
 | Program | None | Programs as attributes of the schedule switch |
-| Logbook | None | Logbook events, last event sensor (owner accounts) |
+| Logbook | `event` entity and last event sensor (owner accounts) | Done in 0.6.0b1 |
 | FilmDetails | None | image entity with the last clip frame |
 | Right | None | Hide what the account may not do |
 | WidgetItem | Preset ids | Preset names from customName |

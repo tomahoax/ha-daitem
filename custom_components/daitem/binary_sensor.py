@@ -1,4 +1,4 @@
-"""Binary sensors: faults on the panel and its devices, and detector inhibition.
+"""Binary sensors: faults on the panel and its devices, detector inhibition, and triggers.
 
 Important: the API exposes **no** live open/closed detector state, so no door or window
 contact can be created. What is available are the **faults** (power, tamper, transmission
@@ -10,6 +10,9 @@ renamed field on the Daitem side is absorbed by the library alone.
 Controls (remotes, keypads) get the same treatment as detectors, except that a live
 installation reports an empty `anomalies` block for them, so in practice their only entity
 is the inhibition one. That is enough to keep the device from being an empty shell.
+
+Fire and PPMS triggers (widgets in the app) also say whether they have gone off: that one
+is a state, not a fault, so it is visible and not a diagnostic.
 """
 
 from __future__ import annotations
@@ -28,7 +31,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.entity_registry import RegistryEntryHider
-from pydaitem import Device, Fault, Inventory
+from pydaitem import Device, DeviceKind, Fault, Inventory
 
 from .const import DOMAIN, OPTION_FAULT_VISIBILITY_MIGRATED
 from .coordinator import DaitemConfigEntry, DaitemCoordinator
@@ -71,6 +74,13 @@ DETECTOR_FAULTS: dict[Fault, BinarySensorDeviceClass] = {
 #: others are still created (state, history, automations), just hidden. This applies at
 #: first registration only: an already-registered entity keeps its current visibility.
 DEFAULT_VISIBLE_DETECTOR_FAULTS = frozenset({Fault.BATTERY, Fault.RADIO})
+
+#: Families that report whether they have gone off, with the matching device class. PPMS
+#: (the confinement alert of schools and public buildings) has no class of its own.
+TRIGGERS: dict[DeviceKind, BinarySensorDeviceClass] = {
+    DeviceKind.FIRE_TRIGGER: BinarySensorDeviceClass.SMOKE,
+    DeviceKind.PPMS_TRIGGER: BinarySensorDeviceClass.SAFETY,
+}
 
 
 async def async_setup_entry(
@@ -117,6 +127,12 @@ async def async_setup_entry(
         DaitemDeviceInhibited(coordinator, device)
         for device in inventory.devices
         if device.inhibitable or device.inhibited
+    )
+
+    async_add_entities(
+        DaitemDeviceTriggered(coordinator, device, TRIGGERS[device.kind])
+        for device in inventory.devices
+        if device.kind in TRIGGERS
     )
 
 
@@ -231,3 +247,19 @@ class DaitemDeviceInhibited(DaitemDeviceEntity, BinarySensorEntity):
     def is_on(self) -> bool | None:
         device = self.current_device()
         return device.inhibited if device else None
+
+
+class DaitemDeviceTriggered(DaitemDeviceEntity, BinarySensorEntity):
+    """Whether a fire or PPMS trigger has gone off."""
+
+    _attr_translation_key = "triggered"
+
+    def __init__(self, coordinator: DaitemCoordinator, device: Device, device_class: BinarySensorDeviceClass) -> None:
+        super().__init__(coordinator, device)
+        self._attr_device_class = device_class
+        self._attr_unique_id = f"{self.device_key}_triggered"
+
+    @property
+    def is_on(self) -> bool | None:
+        device = self.current_device()
+        return device.triggered if device else None

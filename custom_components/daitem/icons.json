@@ -66,6 +66,12 @@
         "state": {
           "on": "mdi:shield-off-outline"
         }
+      },
+      "triggered": {
+        "default": "mdi:bell-outline",
+        "state": {
+          "on": "mdi:bell-alert"
+        }
       }
     },
     "button": {

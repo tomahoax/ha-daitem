@@ -73,6 +73,9 @@
       },
       "inhibited": {
         "name": "Inhibé"
+      },
+      "triggered": {
+        "name": "Déclenché"
       }
     },
     "button": {
