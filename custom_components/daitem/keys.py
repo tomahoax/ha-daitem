@@ -6,7 +6,7 @@ Each one is both the device registry identifier and the key its entities are tra
 
 from __future__ import annotations
 
-from pydaitem import Automatism, Camera, Device
+from pydaitem import Automatism, Camera, Device, Scenario
 
 
 def device_key(system_id: int, device: Device) -> str:
@@ -26,3 +26,8 @@ def automation_key(system_id: int, automatism: Automatism) -> str:
 
 def camera_key(system_id: int, camera: Camera) -> str:
     return f"{system_id}_camera_{camera.id}"
+
+
+def scenario_key(system_id: int, scenario: Scenario) -> str:
+    """Unique id of a scenario's button. Not a device: the button hangs off the panel."""
+    return f"{system_id}_scenario_{scenario.id}"

@@ -43,6 +43,7 @@ from pydaitem import (
     DaitemSessionBusyError,
     DaitemSystem,
     Inventory,
+    Remedy,
     Scenario,
     Snapshot,
     SystemStatus,
@@ -138,9 +139,9 @@ class DaitemCoordinator(DataUpdateCoordinator[DaitemData]):
         self.event_log: DaitemEventLogCoordinator | None = None
         """Set by `async_setup_entry` when the account may read the event log."""
         self.connectivity: DaitemConnectivityCoordinator | None = None
+        """Set by `async_setup_entry` when the account may read the transmitter's connectivity."""
         self.known: dict[str, set[str]] = {}
         """Keys each platform already made entities for, by source. See `async_track_new`."""
-        """Set by `async_setup_entry` when the account may read the transmitter's connectivity."""
 
     @property
     def system_id(self) -> int:
@@ -261,7 +262,7 @@ class DaitemCoordinator(DataUpdateCoordinator[DaitemData]):
         if not self._capabilities_discovered:
             await self.async_load_capabilities()
 
-        automatisms, cameras, clips = await self._read_extras()
+        automatisms, cameras, clips = await self._read_extras(status)
         scenarios = await self._read_scenarios(status, inventory)
         return DaitemData(
             status=status,
@@ -298,15 +299,18 @@ class DaitemCoordinator(DataUpdateCoordinator[DaitemData]):
         self._scenarios_due = time.monotonic() + SCENARIOS_SCAN_INTERVAL
         return scenarios
 
-    async def _read_extras(self) -> tuple[list[Automatism], list[Camera], list[Clip]]:
-        """Automations, cameras and clips, on their own slower pace.
+    async def _read_extras(self, status: SystemStatus) -> tuple[list[Automatism], list[Camera], list[Clip]]:
+        """Automations, cameras and clips, on their own slower pace, and never mid-arming.
+
+        Their read may open a panel session, so an exit delay defers it, as for the
+        scenarios: a read due meanwhile runs on the first cycle after the delay.
 
         A list that fails to read keeps its previous value, as the inventory does, with one
         warning per outage. A failure is spelled out rather than swallowed, so the logs
         show which list could not be read.
         """
         previous = self.data
-        if previous is not None and time.monotonic() < self._extras_due:
+        if previous is not None and (status.is_arming or time.monotonic() < self._extras_due):
             return previous.automatisms, previous.cameras, previous.clips
 
         extras = await self.system.read_extras()
@@ -321,8 +325,11 @@ class DaitemCoordinator(DataUpdateCoordinator[DaitemData]):
             _LOGGER.info("Daitem %s readable again", name)
         self._extras_failing = failing
 
+        # A refused read (no video right, typically) will not succeed sooner for being
+        # retried: only a transient failure keeps the faster pace.
+        transient = any(err.remedy is not Remedy.NOT_PERMITTED for err in extras.errors.values())
         found = bool(automatisms or cameras or clips)
-        delay = EXTRAS_SCAN_INTERVAL if found or failing else EXTRAS_IDLE_SCAN_INTERVAL
+        delay = EXTRAS_SCAN_INTERVAL if found or transient else EXTRAS_IDLE_SCAN_INTERVAL
         self._extras_due = time.monotonic() + delay
         return automatisms, cameras, clips
 
@@ -330,10 +337,12 @@ class DaitemCoordinator(DataUpdateCoordinator[DaitemData]):
         """Read the automations again shortly after a command, then once more later.
 
         The command answer carries no state, and the app also waits for the next state
-        update before showing the outcome.
+        update before showing the outcome. A new command replaces the reads still pending
+        from an earlier one, since its own come later, so the list never grows.
         """
-        for delay in COMMAND_FOLLOW_UP_DELAYS:
-            self._follow_ups.append(async_call_later(self.hass, delay, self._follow_up))
+        for cancel in self._follow_ups:
+            cancel()
+        self._follow_ups = [async_call_later(self.hass, delay, self._follow_up) for delay in COMMAND_FOLLOW_UP_DELAYS]
 
     @callback
     def _follow_up(self, _now: datetime) -> None:
@@ -352,11 +361,12 @@ class DaitemCoordinator(DataUpdateCoordinator[DaitemData]):
         The faults need no panel session, so a busy panel no longer freezes them. During an
         exit delay the cycle runs every few seconds to follow the state, and the faults can
         wait for it to settle: the inventory is not read again, which spares the API a
-        request on each of those cycles.
+        request on each of those cycles. Its field is then left None with no error, which
+        `_pick_inventory` reads as "not read", not as a failure or a recovery.
         """
         if self.data is None or not self.data.status.is_arming:
             return await self.system.read_snapshot()
-        snapshot = Snapshot(inventory=self.data.inventory)
+        snapshot = Snapshot()
         try:
             snapshot.status = await self.system.panel.read()
         except DaitemError as err:
@@ -373,6 +383,9 @@ class DaitemCoordinator(DataUpdateCoordinator[DaitemData]):
         """
         inventory = snapshot.inventory
         err = snapshot.errors.get("inventory")
+        if inventory is None and err is None:
+            # Not read this cycle (mid-arming): an outage, or its end, is left as it stands.
+            return self.data.inventory if self.data else None
         if inventory is None:
             if not self._inventory_failed:
                 # Warn once per outage rather than on every cycle.

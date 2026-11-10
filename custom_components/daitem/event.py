@@ -47,22 +47,26 @@ class DaitemEventLog(DaitemEventLogEntity, EventEntity):
         super().__init__(coordinator, system_id)
         self._attr_unique_id = f"{system_id}_event_log"
         self._seen: tuple[str, str, str] | None = _key(coordinator.data[0]) if coordinator.data else None
+        # A log read empty is a baseline too: what appears in it afterwards is new.
+        self._baseline_read = coordinator.data is not None
 
     @callback
     def _handle_coordinator_update(self) -> None:
-        entries = self.coordinator.data or []
-        if not entries:
-            return
-        new: list[LogEntry] = []
-        for entry in entries:
-            if _key(entry) == self._seen:
-                break
-            new.append(entry)
-        first_read = self._seen is None
-        self._seen = _key(entries[0])
-        if first_read or not new:
-            return
-        # Oldest first, so automations see them in the order they happened.
-        for entry in reversed(new[:MAX_EVENTS_PER_READ]):
-            self._trigger_event(EVENT_TYPE, {"date": entry.date, "title": entry.title, "details": entry.details})
+        entries = self.coordinator.data
+        if entries is not None:
+            new: list[LogEntry] = []
+            for entry in entries:
+                if _key(entry) == self._seen:
+                    break
+                new.append(entry)
+            if self._baseline_read:
+                # Oldest first, so automations see them in the order they happened.
+                for entry in reversed(new[:MAX_EVENTS_PER_READ]):
+                    self._trigger_event(
+                        EVENT_TYPE, {"date": entry.date, "title": entry.title, "details": entry.details}
+                    )
+            self._baseline_read = True
+            if entries:
+                self._seen = _key(entries[0])
+        # Written on every update, so the availability follows the reads, new entries or not.
         self.async_write_ha_state()

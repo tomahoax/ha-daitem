@@ -6,6 +6,8 @@ the Daitem Secure app. Not affiliated with or endorsed by Daitem or Atral.
 
 from __future__ import annotations
 
+import asyncio
+
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
@@ -65,14 +67,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: DaitemConfigEntry) -> bo
 
     # Read once now, so its entities exist only for accounts allowed to read it. A failure
     # other than a refusal still creates them: they wait, unavailable, for a later read.
-    event_log = DaitemEventLogCoordinator(hass, entry, system)
-    await event_log.async_refresh()
-    coordinator.event_log = None if event_log.forbidden else event_log
-
     # Same rule for the transmitter's connectivity: no panel session, its own pace, so it
-    # stays readable while the panel is not.
+    # stays readable while the panel is not. Both at once: the event log is a slow read,
+    # and neither needs the other.
+    event_log = DaitemEventLogCoordinator(hass, entry, system)
     connectivity = DaitemConnectivityCoordinator(hass, entry, system)
-    await connectivity.async_refresh()
+    await asyncio.gather(event_log.async_refresh(), connectivity.async_refresh())
+    coordinator.event_log = None if event_log.forbidden else event_log
     coordinator.connectivity = None if connectivity.forbidden else connectivity
 
     # Registered explicitly, and before the platforms, so the per-device entities can hang
@@ -113,12 +114,9 @@ async def async_remove_config_entry_device(
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: DaitemConfigEntry) -> bool:
-    """Unload the installation."""
-    unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
-    if unloaded:
-        coordinator = entry.runtime_data
-        await coordinator.async_shutdown()
-        for secondary in (coordinator.event_log, coordinator.connectivity):
-            if secondary is not None:
-                await secondary.async_shutdown()
-    return unloaded
+    """Unload the installation.
+
+    Each coordinator shuts itself down: one built with a config entry registers its
+    `async_shutdown` on the entry's unload.
+    """
+    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)

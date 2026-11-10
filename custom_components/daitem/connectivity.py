@@ -40,16 +40,20 @@ class DaitemConnectivityCoordinator(DataUpdateCoordinator[bool | None]):
         self.system = system
         self.forbidden = False
         """True once the account was refused the read: it is not read again."""
+        self._read_once = False
+        """Whether a read ever succeeded. `data` cannot tell: None is a valid answer."""
 
     async def _async_update_data(self) -> bool | None:
         try:
-            return await self.system.panel.transmitter_online()
+            online = await self.system.panel.transmitter_online()
         except DaitemError as err:
             if err.remedy is Remedy.NOT_PERMITTED:
                 self.forbidden = True
                 self.update_interval = None
                 _LOGGER.info("This account may not read the transmitter's connectivity, so it is left out: %s", err)
                 raise UpdateFailed(f"Connectivity refused: {err}") from err
-            if isinstance(err, DaitemRateLimitedError) and self.data is not None:
+            if isinstance(err, DaitemRateLimitedError) and self._read_once:
                 return self.data
             raise UpdateFailed(f"Could not read the transmitter's connectivity: {err}") from err
+        self._read_once = True
+        return online

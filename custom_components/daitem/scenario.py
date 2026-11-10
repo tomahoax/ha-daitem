@@ -15,6 +15,7 @@ from .const import DOMAIN
 from .coordinator import DaitemConfigEntry, DaitemCoordinator, DaitemData
 from .entity import DaitemEntity, async_track_new
 from .errors import command_error, needs_reauth
+from .keys import scenario_key
 
 #: `Scenario.trigger` of the scenarios a person runs. The others are the panel's to run.
 MANUAL = "MANUAL"
@@ -25,7 +26,7 @@ def async_track_scenarios(entry: DaitemConfigEntry, async_add_entities: AddConfi
     coordinator = entry.runtime_data
 
     def items(data: DaitemData) -> dict[str, Scenario]:
-        return {f"{coordinator.system_id}_scenario_{s.id}": s for s in data.scenarios if s.trigger == MANUAL}
+        return {scenario_key(coordinator.system_id, s): s for s in data.scenarios if s.trigger == MANUAL}
 
     async_track_new(
         entry, "button.scenarios", items, lambda s: [DaitemScenarioButton(coordinator, s)], async_add_entities
@@ -40,7 +41,7 @@ class DaitemScenarioButton(DaitemEntity, ButtonEntity):
     def __init__(self, coordinator: DaitemCoordinator, scenario: Scenario) -> None:
         super().__init__(coordinator)
         self._scenario_id = scenario.id
-        self._attr_unique_id = f"{coordinator.system_id}_scenario_{scenario.id}"
+        self._attr_unique_id = scenario_key(coordinator.system_id, scenario)
         self._attr_translation_placeholders = {"scenario_name": scenario.name or str(scenario.id)}
 
     def current(self) -> Scenario | None:
