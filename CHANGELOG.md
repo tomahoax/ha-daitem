@@ -28,6 +28,9 @@ Beta, for installations with automations or cameras. Requires pydaitem 0.3.0b1.
 - A "Transmitter" connectivity sensor, read every five minutes without a panel session, on
   its own coordinator: it keeps answering while the alarm is unavailable, so an offline box
   is told apart from a Daitem outage.
+- Scenarios run by hand, as a button each. A press publishes the state the scenario leaves
+  the alarm in. They are read every thirty minutes, never during an exit delay, and not at
+  all on an installation whose inventory says it has none.
 
 ### Changed
 

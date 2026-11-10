@@ -43,6 +43,7 @@ from pydaitem import (
     DaitemSessionBusyError,
     DaitemSystem,
     Inventory,
+    Scenario,
     Snapshot,
     SystemStatus,
 )
@@ -56,6 +57,7 @@ from .const import (
     EXTRAS_SCAN_INTERVAL,
     RETRY_ATTEMPTS,
     RETRY_SCAN_INTERVAL,
+    SCENARIOS_SCAN_INTERVAL,
 )
 from .errors import needs_reauth
 from .repairs import async_set_arm_modes_issue, async_set_session_busy_issue
@@ -87,6 +89,7 @@ class DaitemData:
     automatisms: list[Automatism] = field(default_factory=list)
     cameras: list[Camera] = field(default_factory=list)
     clips: list[Clip] = field(default_factory=list)
+    scenarios: list[Scenario] = field(default_factory=list)
 
     @property
     def latest_clip(self) -> Clip | None:
@@ -95,6 +98,9 @@ class DaitemData:
 
     def automatism(self, automatism_id: str) -> Automatism | None:
         return next((a for a in self.automatisms if a.id == automatism_id), None)
+
+    def scenario(self, scenario_id: int) -> Scenario | None:
+        return next((s for s in self.scenarios if s.id == scenario_id), None)
 
 
 class DaitemCoordinator(DataUpdateCoordinator[DaitemData]):
@@ -125,6 +131,8 @@ class DaitemCoordinator(DataUpdateCoordinator[DaitemData]):
         self._capabilities_discovered = False
         self._extras_due = 0.0
         self._extras_failing: set[str] = set()
+        self._scenarios_due = 0.0
+        self._scenarios_failing = False
         self._follow_ups: list[Callable[[], None]] = []
         self.event_log: DaitemEventLogCoordinator | None = None
         """Set by `async_setup_entry` when the account may read the event log."""
@@ -217,6 +225,7 @@ class DaitemCoordinator(DataUpdateCoordinator[DaitemData]):
             await self.async_load_capabilities()
 
         automatisms, cameras, clips = await self._read_extras()
+        scenarios = await self._read_scenarios(status, inventory)
         return DaitemData(
             status=status,
             inventory=inventory,
@@ -224,7 +233,33 @@ class DaitemCoordinator(DataUpdateCoordinator[DaitemData]):
             automatisms=automatisms,
             cameras=cameras,
             clips=clips,
+            scenarios=scenarios,
         )
+
+    async def _read_scenarios(self, status: SystemStatus, inventory: Inventory | None) -> list[Scenario]:
+        """The scenarios, rarely: their read may hold the panel, and they seldom change.
+
+        Not read on an installation whose inventory says it has none, nor during an exit
+        delay. A failed read keeps the previous list, with one warning per outage.
+        """
+        previous = self.data.scenarios if self.data else []
+        if inventory is not None and inventory.scenarios_enabled is False:
+            return []
+        if status.is_arming or (self.data is not None and time.monotonic() < self._scenarios_due):
+            return previous
+        try:
+            scenarios = await self.system.scenarios.read()
+        except DaitemError as err:
+            if not self._scenarios_failing:
+                _LOGGER.warning("Could not read the Daitem scenarios: %s", err)
+                self._scenarios_failing = True
+            self._scenarios_due = time.monotonic() + EXTRAS_SCAN_INTERVAL
+            return previous
+        if self._scenarios_failing:
+            _LOGGER.info("Daitem scenarios readable again")
+            self._scenarios_failing = False
+        self._scenarios_due = time.monotonic() + SCENARIOS_SCAN_INTERVAL
+        return scenarios
 
     async def _read_extras(self) -> tuple[list[Automatism], list[Camera], list[Clip]]:
         """Automations, cameras and clips, on their own slower pace.

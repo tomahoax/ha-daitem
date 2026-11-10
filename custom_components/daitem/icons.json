@@ -83,6 +83,9 @@
     "button": {
       "refresh": {
         "default": "mdi:refresh"
+      },
+      "scenario": {
+        "default": "mdi:play-circle-outline"
       }
     },
     "sensor": {

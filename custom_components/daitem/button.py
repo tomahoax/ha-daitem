@@ -1,4 +1,5 @@
-"""Manual refresh button for the alarm state, and automations that only take an impulse."""
+"""Manual refresh button for the alarm state, automations that only take an impulse, and
+the scenarios run by hand."""
 
 from __future__ import annotations
 
@@ -10,6 +11,7 @@ from pydaitem import Automatism
 from .automatism import IMPULSES, DaitemAutomatismEntity, automatisms_for, first_accepted
 from .coordinator import DaitemConfigEntry, DaitemCoordinator
 from .entity import DaitemEntity
+from .scenario import DaitemScenarioButton, manual_scenarios
 
 #: One command at a time: the panel takes a single session.
 PARALLEL_UPDATES = 1
@@ -23,6 +25,7 @@ async def async_setup_entry(
     coordinator = entry.runtime_data
     async_add_entities([DaitemRefreshButton(coordinator)])
     async_add_entities(DaitemImpulseButton(coordinator, a) for a in automatisms_for(coordinator, "button"))
+    async_add_entities(DaitemScenarioButton(coordinator, s) for s in manual_scenarios(coordinator))
 
 
 class DaitemRefreshButton(DaitemEntity, ButtonEntity):

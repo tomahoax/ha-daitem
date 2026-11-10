@@ -43,6 +43,8 @@ your diagnostics (see below).
 - **Event log** (owner accounts): an `event` entity firing for every new entry, and a
   "latest event" sensor. Entry titles are the Daitem app's own keys
   (`logEvent.36.label2`), not readable text yet.
+- **Scenarios** run by hand, as a button each. A scenario performs the actions the
+  installer gave it, which may arm or disarm the alarm, exactly as from the app.
 
 ## Limitations, worth reading before installing
 
@@ -67,6 +69,12 @@ leaving the alarm greyed out for a full cycle.
 
 **Event log for owners only.** A restricted account is refused, so its entities are left
 out.
+
+**Scenarios: beta.** They are read every thirty minutes, never during an exit delay, since
+the read may hold the panel. A scenario added in the app appears after a reload. Scenarios
+the panel runs on its own (on fire, on intrusion) get no button, and one switched off in
+the app shows as unavailable. A button press runs the scenario without asking for the code,
+like the alarm entity: keep it off dashboards others can reach if it disarms.
 
 **Automations, cameras and clips: beta.** They work as follows:
 

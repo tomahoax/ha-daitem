@@ -84,6 +84,9 @@
     "button": {
       "refresh": {
         "name": "Refresh"
+      },
+      "scenario": {
+        "name": "Scenario {scenario_name}"
       }
     },
     "sensor": {

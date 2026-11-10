@@ -128,6 +128,7 @@ def mock_client(mock_system: System, mock_status: SystemStatus, mock_inventory: 
     system.read_extras.return_value = Extras(automatisms=[], cameras=[], clips=[])
     system.logbook.read.return_value = []
     system.panel.transmitter_online.return_value = True
+    system.scenarios.read.return_value = []
     system.collect_raw.return_value = {"system_id": mock_system.id, "payloads": {}, "errors": {}}
 
     with (

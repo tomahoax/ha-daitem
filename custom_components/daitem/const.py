@@ -48,6 +48,10 @@ RETRY_ATTEMPTS: Final = 5
 EXTRAS_SCAN_INTERVAL: Final = 300
 EXTRAS_IDLE_SCAN_INTERVAL: Final = 1800
 
+#: Scenarios change only when the installer edits them, and their read may open a panel
+#: session: every thirty minutes, and never during an exit delay.
+SCENARIOS_SCAN_INTERVAL: Final = 1800
+
 #: After an automation command, state reads at these delays: the app also waits for the
 #: next state update before showing the outcome.
 COMMAND_FOLLOW_UP_DELAYS: Final = (5, 30)

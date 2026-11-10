@@ -79,6 +79,7 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: DaitemC
             for a in data.automatisms
         ],
         "cameras": [{"type": c.type, "status": c.status} for c in data.cameras],
+        "scenarios": [{"trigger": s.trigger, "active": s.active, "actions": len(s.actions)} for s in data.scenarios],
         "clip_count": len(data.clips),
         "latest_clip": _clip_summary(data),
         "failing_reads": sorted(getattr(coordinator, "_extras_failing", set())),

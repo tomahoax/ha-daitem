@@ -31,7 +31,7 @@ pydaitem 0.3.0 also brings these, which the integration does not use yet:
 | Group arming | `sendGroupCommand` (already in pydaitem) | `switch` per group | Groups are already read |
 | Device inhibition | `PATCH /v1/.../products/{serialNumber}` | `switch` per inhibitable device | The inventory already says which devices can be inhibited |
 | Arming schedule | schedule calls (mostly in pydaitem) | `switch` for the schedule, programs as attributes | |
-| Scenarios | `GET /v6/.../scenarios`, `startScenarioWidgetCommand` | `button` or `scene` per scenario | |
+| ~~Scenarios~~ | `GET /v6/.../scenarios`, `startScenarioWidgetCommand` | `button` per manual scenario | Done in 0.6.0b1 |
 | ~~Event log~~ | logbook calls (in pydaitem) | `event` entity, last event `sensor` | Done in 0.6.0b1. Readable titles need the app's translation keys mapped |
 | Recorded clips | `GET /v6/.../videos`, `.../mpeg4`, capture calls | `image` or media source | Latest clip sensor done in 0.6.0b1. Playback and a capture button remain |
 | Firmware | `updateFirmware` | `update` | Versions already exposed. Risky to trigger remotely |
@@ -103,8 +103,8 @@ nothing to add are left out. The library side of each one is in pydaitem's
 | PpmsTrigger | `binary_sensor` (safety) per trigger | Done in 0.6.0b1 |
 | Firmware | Firmware version sensors | update entity per device with a newer firmware |
 | Automatism | `cover`, `light`, `switch` or `button` per automation | Done in 0.6.0b1 |
-| Scenario | None | button per manual scenario |
-| ScenarioAction | None | Actions as attributes of the scenario button |
+| Scenario | `button` per manual scenario | Done in 0.6.0b1 |
+| ScenarioAction | Action count on the scenario button | The actions themselves, once their shape is known |
 | ProgramList | None | switch to turn the schedule on and off |
 | Program | None | Programs as attributes of the schedule switch |
 | Logbook | `event` entity and last event sensor (owner accounts) | Done in 0.6.0b1 |
