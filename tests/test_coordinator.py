@@ -22,6 +22,7 @@ from pydaitem import (
     DaitemBadCodeError,
     DaitemError,
     DaitemForbiddenError,
+    DaitemRateLimitedError,
     DaitemSessionBusyError,
     DaitemSessionRestrictedError,
     Inventory,
@@ -213,6 +214,26 @@ async def test_a_busy_session_does_not_trigger_the_fast_retry(
 
     assert coordinator.last_update_success is True
     assert coordinator.update_interval == timedelta(seconds=DEFAULT_SCAN_INTERVAL)
+
+
+async def test_a_rate_limit_keeps_the_last_state_without_retrying_fast(
+    hass: HomeAssistant, entry: MockConfigEntry, mock_client: AsyncMock
+) -> None:
+    """Daitem asked to back off: the library pauses on its own, the state stays shown.
+
+    Polling every thirty seconds would only meet the library's local refusal, and greying
+    the alarm out would report an outage that is not one.
+    """
+    coordinator = entry.runtime_data
+    mock_client.system.panel.read.side_effect = DaitemRateLimitedError("transmitter.connection.overlimit")
+    await coordinator.async_refresh()
+    await hass.async_block_till_done()
+
+    assert coordinator.last_update_success is True
+    assert coordinator.data.status.state == "off"
+    assert coordinator.data.session_busy is False
+    assert coordinator.update_interval == timedelta(seconds=DEFAULT_SCAN_INTERVAL)
+    assert hass.states.get("alarm_control_panel.alarm_panel_home").state == "disarmed"
 
 
 async def test_a_busy_session_during_arming_keeps_the_five_second_pace(

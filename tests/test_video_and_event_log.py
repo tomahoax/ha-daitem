@@ -12,7 +12,7 @@ from unittest.mock import AsyncMock
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
-from pydaitem import Camera, Clip, DaitemForbiddenError, Extras, LogEntry, redact
+from pydaitem import Camera, Clip, DaitemForbiddenError, DaitemRateLimitedError, Extras, LogEntry, redact
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from conftest import ENTRY_DATA
@@ -97,6 +97,17 @@ async def test_a_new_entry_fires_an_event(hass: HomeAssistant, mock_client: Asyn
     assert state.state != "unknown"
     assert state.attributes["event_type"] == "logged"
     assert state.attributes["title"] == "logEvent.9.label1"
+
+
+async def test_a_rate_limit_keeps_the_event_log(hass: HomeAssistant, mock_client: AsyncMock) -> None:
+    entry = await setup(hass, mock_client, Extras(automatisms=[], cameras=[], clips=[]), LOG)
+    event_log = entry.runtime_data.event_log
+    mock_client.system.logbook.read.side_effect = DaitemRateLimitedError("error.pool.full")
+    await event_log.async_refresh()
+    await hass.async_block_till_done()
+    assert event_log.last_update_success is True
+    assert event_log.data == LOG
+    assert not event_log.forbidden
 
 
 async def test_a_restricted_account_gets_no_event_log(hass: HomeAssistant, mock_client: AsyncMock) -> None:

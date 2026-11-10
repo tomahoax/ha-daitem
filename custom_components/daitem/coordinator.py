@@ -11,8 +11,8 @@ The session strategy it relies on was validated by measurement:
 - **No permanent session**: the panel accepts only one, so holding it would lock the
   mobile app out.
 - **Delay tracking**: poll faster while an arming delay runs, then slow back down.
-- **Graceful degradation**: if another device holds the session, keep the last known state
-  instead of marking entities unavailable.
+- **Graceful degradation**: if another device holds the session, or Daitem asks the
+  client to back off, keep the last known state instead of marking entities unavailable.
 - **Fast retry**: a failed cycle does mark them unavailable, so poll every thirty seconds
   for a short while afterwards rather than leaving the alarm greyed out for a full
   interval over a glitch that lasted a second.
@@ -39,6 +39,7 @@ from pydaitem import (
     Camera,
     Clip,
     DaitemError,
+    DaitemRateLimitedError,
     DaitemSessionBusyError,
     DaitemSystem,
     Inventory,
@@ -190,6 +191,15 @@ class DaitemCoordinator(DataUpdateCoordinator[DaitemData]):
                 self._note_cycle_delivered_data(self.data.status)
                 return replace(self.data, inventory=inventory, session_busy=True)
             raise self._note_failed_cycle(f"Panel session busy: {err}") from err
+        if isinstance(err, DaitemRateLimitedError):
+            # The library pauses on its own, from five seconds to five minutes, and refuses
+            # every call locally meanwhile. Polling faster would buy nothing, and the state
+            # has no reason to be wrong: keep it, as for a busy session.
+            _LOGGER.debug("Daitem asked to back off, keeping last known state: %s", err)
+            if self.data is not None:
+                self._note_cycle_delivered_data(self.data.status)
+                return replace(self.data, inventory=inventory)
+            raise self._note_failed_cycle(f"Daitem asked to back off: {err}") from err
         if err is not None or status is None:
             raise self._note_failed_cycle(f"Error communicating with Daitem: {err}") from err
 

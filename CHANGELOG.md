@@ -41,6 +41,9 @@ Beta, for installations with automations or cameras. Requires pydaitem 0.3.0b1.
   the delay to end, which spares the API a request per cycle.
 - Diagnostics show the load the integration puts on the Daitem API: requests by endpoint,
   retries, panel sessions and how long they were held.
+- When Daitem asks the client to back off, the alarm and the event log keep their last
+  state instead of turning unavailable, and polling keeps its pace: pydaitem pauses on its
+  own meanwhile.
 
 ### Notes
 

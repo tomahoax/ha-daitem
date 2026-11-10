@@ -14,7 +14,7 @@ from datetime import timedelta
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-from pydaitem import DaitemError, DaitemForbiddenError, DaitemSessionBusyError, DaitemSystem, LogEntry
+from pydaitem import DaitemError, DaitemRateLimitedError, DaitemSessionBusyError, DaitemSystem, LogEntry, Remedy
 
 from .const import DOMAIN, EVENT_LOG_SCAN_INTERVAL
 from .coordinator import DaitemConfigEntry
@@ -42,14 +42,13 @@ class DaitemEventLogCoordinator(DataUpdateCoordinator[list[LogEntry]]):
     async def _async_update_data(self) -> list[LogEntry]:
         try:
             return await self.system.logbook.read()
-        except DaitemForbiddenError as err:
-            self.forbidden = True
-            self.update_interval = None
-            _LOGGER.info("The event log is for owner accounts only, so it is left out: %s", err)
-            raise UpdateFailed(f"Event log refused: {err}") from err
-        except DaitemSessionBusyError as err:
-            if self.data is not None:
-                return self.data
-            raise UpdateFailed(f"Panel session busy: {err}") from err
         except DaitemError as err:
+            if err.remedy is Remedy.NOT_PERMITTED:
+                self.forbidden = True
+                self.update_interval = None
+                _LOGGER.info("The event log is for owner accounts only, so it is left out: %s", err)
+                raise UpdateFailed(f"Event log refused: {err}") from err
+            if isinstance(err, DaitemSessionBusyError | DaitemRateLimitedError) and self.data is not None:
+                # Nothing is wrong with the entries already read: keep them for the next cycle.
+                return self.data
             raise UpdateFailed(f"Could not read the event log: {err}") from err
