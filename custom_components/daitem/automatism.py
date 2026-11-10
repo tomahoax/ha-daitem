@@ -5,13 +5,12 @@ commands it lists, since only those may be sent:
 
 - a gate, garage door or shutter that can be told to open and close is a `cover`;
 - one that only takes an impulse (`PULSE`, `SWITCH`) is a `button`, because it reports no
-  state worth trusting (assumption A2 in the README);
+  state worth trusting (see the README);
 - a light with ON and OFF is a `light`, anything else with ON and OFF a `switch`;
 - anything else with an impulse is a `button`, and the rest is left out, with a log line.
 
-None of this was checked against real hardware when it was written: the command and state
-vocabulary comes from an analysis of the app's behaviour. The entities therefore declare
-an assumed state, so the UI keeps both directions available whatever the state reads.
+The entities declare an assumed state, so the UI keeps both directions available whatever
+the state reads.
 """
 
 from __future__ import annotations

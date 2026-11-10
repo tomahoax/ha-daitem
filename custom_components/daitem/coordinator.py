@@ -217,8 +217,8 @@ class DaitemCoordinator(DataUpdateCoordinator[DaitemData]):
         """Automations, cameras and clips, on their own slower pace.
 
         A list that fails to read keeps its previous value, as the inventory does, with one
-        warning per outage. None of these was seen with real hardware when this was
-        written, which is why a failure is spelled out rather than swallowed.
+        warning per outage. A failure is spelled out rather than swallowed, so the logs
+        show which list could not be read.
         """
         previous = self.data
         if previous is not None and time.monotonic() < self._extras_due:

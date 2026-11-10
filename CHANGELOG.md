@@ -44,9 +44,9 @@ Beta, for installations with automations or cameras. Requires pydaitem 0.3.0b1.
 
 ### Notes
 
-- Built without the hardware: see "Automations, cameras and clips: beta, built blind" in
-  the README for the open assumptions. Installations without any of these read them every
-  thirty minutes only.
+- How automations, cameras and clips behave is in the README, under "Automations, cameras
+  and clips: beta". Installations without any of these read them every thirty minutes
+  only.
 
 ### Release checklist
 

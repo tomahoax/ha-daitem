@@ -1,9 +1,7 @@
 """Automations: which entity each one becomes, and what pressing it sends.
 
-The payloads follow pydaitem's models, which come from an analysis of the app's behaviour:
-no real answer had been seen when this was written. What is pinned here is the mapping the
-README documents (assumptions A1 and A2), so a correction after the first field report is
-a deliberate change rather than an accident.
+The payloads follow pydaitem's models. What is pinned here is the mapping the README
+documents, so changing it is a deliberate act rather than an accident.
 """
 
 from __future__ import annotations

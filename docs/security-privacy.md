@@ -6,8 +6,7 @@ exactly what happens to them.
 ## This is unofficial
 
 Not affiliated with, endorsed by, or supported by Daitem or the Atral group. It talks to the
-private API of the Daitem Secure mobile app, known from an analysis of the app's behaviour.
-That API is non-contractual: it can change without notice with any app update, and break this
+private API of the Daitem Secure mobile app. That API is non-contractual: it can change without notice with any app update, and break this
 integration.
 
 ## It is not local

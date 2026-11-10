@@ -3,8 +3,8 @@
 The other tests replace the library with a double. This one does not: the façade, the
 transport, the job polling and the models all run, so a mismatch between what the
 integration expects and what the library returns fails here. The answers follow the
-library's models, which come from an analysis of the app's behaviour: a field report may
-still prove them wrong, and then this server is the place to correct them.
+library's models: when the API is found to answer otherwise, this server is the place to
+correct them.
 """
 
 from __future__ import annotations

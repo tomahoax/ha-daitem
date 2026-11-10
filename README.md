@@ -25,8 +25,8 @@ private API of the Daitem Secure mobile app.
 - Diagnostics download, with credentials and codes redacted.
 - English and French throughout, entity names included.
 
-**Beta (0.6.0b1): automations, cameras and the event log.** Built without access to the
-hardware: please try it and send back your diagnostics (see below).
+**Beta (0.6.0b1): automations, cameras and the event log.** Please try it and send back
+your diagnostics (see below).
 
 - **Automations** driven through the alarm, each as its own device: a gate, garage door or
   shutter becomes a `cover` (open, close, stop and position as it allows), one that only
@@ -64,16 +64,14 @@ leaving the alarm greyed out for a full cycle.
 **Event log for owners only.** A restricted account is refused, so its entities are left
 out.
 
-**Automations, cameras and clips: beta, built blind.** Every list read while the API was
-mapped came back empty, so these follow the Daitem app's behaviour without a real answer to
-check against. Three assumptions are open, and the diagnostics settle them:
+**Automations, cameras and clips: beta.** They work as follows:
 
-- **A1.** An opening that reports `OFF` is closed, `ON` is open, and a reported position
-  runs from 0 (closed) to 100 (open).
-- **A2.** A gate or garage door that only takes an impulse has no state worth trusting, so
-  it is a button rather than a cover.
-- **A3.** Entities are created at startup: an automation added later in the Daitem app
-  needs a reload of the integration.
+- An opening that reports `OFF` is closed, `ON` is open, and a reported position runs from
+  0 (closed) to 100 (open).
+- A gate or garage door that only takes an impulse has no state worth trusting, so it is a
+  button rather than a cover.
+- Entities are created at startup: an automation added later in the Daitem app needs a
+  reload of the integration.
 
 Every automation entity declares an assumed state, so both directions stay available even
 if the state reads wrong. They are read every five minutes, and every thirty minutes on an

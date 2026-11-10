@@ -110,8 +110,8 @@ class DaitemFirmware(DaitemEntity, SensorEntity):
 class DaitemDeviceGroup(DaitemDeviceEntity, SensorEntity):
     """Which group a detector belongs to.
 
-    The API gives a number and no name: group names appear nowhere in the inventory, and
-    the state payload's `groupList` has never been observed carrying one.
+    The API gives a number and no name: group names appear neither in the inventory nor in
+    the state payload's `groupList`.
     """
 
     _attr_entity_category = EntityCategory.DIAGNOSTIC

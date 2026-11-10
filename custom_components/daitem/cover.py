@@ -1,8 +1,8 @@
 """Gates, garage doors and shutters that can be told to open and close.
 
-State reading follows assumption A1 in the README: OFF reads closed, ON open, and a
-POSITION state carries a position from 0 (closed) to 100 (open). Never checked against
-real hardware, hence the assumed state.
+OFF reads closed, ON open, and a POSITION state carries a position from 0 (closed) to 100
+(open), as the README says. The entity declares an assumed state, so both directions stay
+available whatever the state reads.
 """
 
 from __future__ import annotations

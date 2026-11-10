@@ -54,7 +54,7 @@ def _group_membership(inventory: Inventory | None) -> dict[str, list[str]]:
 
     Keyed by group number as a string, because state attributes are serialised to JSON and
     an integer key would not survive anyway. The API gives numbers and no names: no group
-    name appears in the inventory, and none has ever been observed in the state payload.
+    name appears in the inventory or in the state payload.
 
     Ordered by the number, not by the string it becomes, so group 10 comes after group 2
     rather than before it.

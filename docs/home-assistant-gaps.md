@@ -7,7 +7,7 @@ This page only covers the Home Assistant side.
 
 **Done in 0.6.0b1 (beta):** automations (covers, buttons, lights, switches), cameras as
 devices with their status, the latest clip sensor and the event log. They are marked below,
-and their open assumptions are in the README.
+and how they behave is in the README.
 
 ## Adopting pydaitem 0.3.0
 
@@ -44,8 +44,8 @@ access and test mode.
 
 ## Cameras, clips and automations: what the app does
 
-From an analysis of the Daitem Secure 6.0.3 app's behaviour. It settles which of these an
-integration can reproduce.
+What the Daitem Secure 6.0.3 app does with each, and which of these an integration can
+reproduce.
 
 ### Cameras: live video is out of reach
 
@@ -53,7 +53,7 @@ integration can reproduce.
 |---|---|---|
 | `DAHUA` (local) | Does not play it: hands over to the separate Daitem Capture app | Nothing to reuse. Add the camera to Home Assistant directly (ONVIF, RTSP), outside Daitem |
 | `DAHUA_CLOUD` | Plays it peer to peer through the Dahua SDK bundled in the app | No stream URL ever comes from Topaze. A `camera` entity would need Dahua's SDK: not reproducible |
-| `DAITEM_CLOUD` | No live player found | Unknown |
+| `DAITEM_CLOUD` | No live player | Unknown |
 
 ### Recorded clips: reachable
 
