@@ -70,7 +70,15 @@ jobs:
           fi
           TAG="${GITHUB_REF_NAME#v}"
           echo "version=$TAG" >> "$GITHUB_OUTPUT"
-          echo "Releasing $TAG"
+          # Anything but a plain X.Y.Z (0.6.0b1, 1.0.0rc1) is a pre-release, which HACS
+          # offers only to users who enable beta versions.
+          if [[ "$TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+            echo "Releasing $TAG"
+          else
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+            echo "Releasing $TAG as a pre-release"
+          fi
 
       - name: Check the manifest version matches the tag
         run: |
@@ -117,3 +125,4 @@ jobs:
           name: ${{ github.ref_name }}
           body_path: RELEASE_NOTES.md
           files: daitem.zip
+          prerelease: ${{ steps.version.outputs.prerelease }}
