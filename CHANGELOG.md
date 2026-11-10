@@ -55,6 +55,10 @@ Beta, for installations with automations or cameras. Requires pydaitem 0.3.0b1.
   automation, a scenario, a camera) appears in Home Assistant on the next cycle that reads
   it, without reloading the integration. An inventory unreadable at startup no longer
   leaves the per-device sensors missing until a reload either.
+- A device removed from the Daitem app can be deleted from its device page. The button is
+  allowed only once Daitem was read and no longer lists the device, never for the panel,
+  and never while its list fails to read. Nothing is deleted on its own. A deleted device
+  that comes back gets its entities again.
 - A device left unnamed in the Daitem app (detector, siren, automation, camera...) is named
   in Home Assistant's own language, "Détecteur 3" on a French server, instead of a
   hard-coded English name. A name given in the app is kept as it is, and a rename made in

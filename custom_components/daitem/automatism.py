@@ -33,6 +33,7 @@ from .const import DOMAIN
 from .coordinator import DaitemConfigEntry, DaitemCoordinator, DaitemData
 from .entity import DaitemEntity, async_track_new
 from .errors import command_error, needs_reauth
+from .keys import automation_key
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -63,11 +64,6 @@ def automation_translation_key(automatism: Automatism) -> str:
     known = {str(category) for category in AutomatismCategory}
     category = automatism.category if automatism.category in known else AutomatismCategory.UNKNOWN
     return f"automation_{AutomatismCategory(category).name.lower()}"
-
-
-def automation_key(system_id: int, automatism: Automatism) -> str:
-    """Identity of an automation's device, and the key its entities are tracked by."""
-    return f"{system_id}_automatism_{automatism.id}"
 
 
 def async_track_automations(

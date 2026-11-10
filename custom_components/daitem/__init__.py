@@ -93,6 +93,25 @@ async def async_setup_entry(hass: HomeAssistant, entry: DaitemConfigEntry) -> bo
     return True
 
 
+async def async_remove_config_entry_device(
+    hass: HomeAssistant, entry: DaitemConfigEntry, device_entry: dr.DeviceEntry
+) -> bool:
+    """Let the user delete a device the Daitem app no longer lists, and only such a device.
+
+    Home Assistant's `stale-devices` rule, by hand only: nothing is deleted on its own, since
+    a device's rename, area and entities would go with it. Refused for the panel, for a
+    device still listed, and while the list it belongs to cannot be read, so an outage is
+    never taken for a removal.
+    """
+    coordinator = entry.runtime_data
+    keys = {identifier for domain, identifier in device_entry.identifiers if domain == DOMAIN}
+    if not keys or any(coordinator.still_listed(key) is not False for key in keys):
+        return False
+    for key in keys:
+        coordinator.forget(key)
+    return True
+
+
 async def async_unload_entry(hass: HomeAssistant, entry: DaitemConfigEntry) -> bool:
     """Unload the installation."""
     unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)

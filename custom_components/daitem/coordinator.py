@@ -60,6 +60,7 @@ from .const import (
     SCENARIOS_SCAN_INTERVAL,
 )
 from .errors import needs_reauth
+from .keys import automation_key, camera_key, device_key
 from .repairs import async_set_arm_modes_issue, async_set_session_busy_issue
 
 if TYPE_CHECKING:
@@ -150,6 +151,40 @@ class DaitemCoordinator(DataUpdateCoordinator[DaitemData]):
     def inventory(self) -> Inventory | None:
         """Latest inventory, or None before the first cycle or while it is unreadable."""
         return self.data.inventory if self.data else None
+
+    def still_listed(self, key: str) -> bool | None:
+        """Whether the device `key` names is still in what Daitem last sent, None if unknown.
+
+        Unknown before the first cycle, and while the list the device belongs to fails to
+        read: a device missing from a read that did not happen is not gone. The panel itself
+        is always listed.
+        """
+        if key == str(self.system_id):
+            return True
+        listed = self._listed_keys(key)
+        return None if listed is None else key in listed
+
+    def _listed_keys(self, key: str) -> set[str] | None:
+        """The identifiers of the list `key` belongs to, as last read, or None if unreadable."""
+        data = self.data
+        sid = self.system_id
+        if data is None:
+            return None
+        if key.startswith(f"{sid}_automatism_"):
+            failed = "automatisms" in self._extras_failing
+            return None if failed else {automation_key(sid, a) for a in data.automatisms}
+        if key.startswith(f"{sid}_camera_"):
+            failed = "cameras" in self._extras_failing
+            return None if failed else {camera_key(sid, c) for c in data.cameras}
+        if self._inventory_failed or data.inventory is None:
+            return None
+        return {device_key(sid, d) for d in data.inventory.devices}
+
+    @callback
+    def forget(self, key: str) -> None:
+        """Let a device deleted by hand get its entities again, should it ever come back."""
+        for known in self.known.values():
+            known.discard(key)
 
     async def async_load_capabilities(self) -> None:
         """Discover the arming modes this installation supports.

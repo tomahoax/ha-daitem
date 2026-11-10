@@ -32,6 +32,7 @@ from .device import DaitemDeviceEntity, inventory_devices
 from .entity import DaitemEntity, async_track_new
 from .event_log import DaitemEventLogCoordinator
 from .event_log_entity import DaitemEventLogEntity
+from .keys import camera_key
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -86,7 +87,7 @@ async def async_setup_entry(
     async_track_new(entry, "sensor.groups", grouped, lambda d: [DaitemDeviceGroup(coordinator, d)], async_add_entities)
 
     def cameras(data: DaitemData) -> dict[str, Camera]:
-        return {f"{sid}_camera_{c.id}": c for c in data.cameras}
+        return {camera_key(sid, c): c for c in data.cameras}
 
     async_track_new(
         entry, "sensor.cameras", cameras, lambda c: [DaitemCameraStatus(coordinator, c)], async_add_entities
@@ -149,7 +150,7 @@ class DaitemCameraStatus(DaitemEntity, SensorEntity):
     def __init__(self, coordinator: DaitemCoordinator, camera: Camera) -> None:
         super().__init__(coordinator)
         self._camera_id = camera.id
-        key = f"{coordinator.system_id}_camera_{camera.id}"
+        key = camera_key(coordinator.system_id, camera)
         self._attr_unique_id = f"{key}_status"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, key)},

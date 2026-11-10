@@ -91,7 +91,9 @@ installation that has none, so installations without them pay almost nothing.
 installer, an automation, a scenario or a camera added in the Daitem app gets its entities
 on the next cycle that reads it, without reloading the integration: within five minutes for
 devices, automations and cameras (thirty on an installation that had no automation or
-camera yet), thirty for scenarios.
+camera yet), thirty for scenarios. A device removed from the app is not deleted on its
+own, since its rename and area would go with it: its device page offers a Delete button
+once Daitem no longer lists it.
 
 **Testing the beta.** Download the diagnostics (Settings, Devices and services, Daitem, the
 three dots, Download diagnostics) and attach the file to an issue. It now includes the raw

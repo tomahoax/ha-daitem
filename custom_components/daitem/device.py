@@ -15,17 +15,7 @@ from pydaitem import Device
 from .const import DOMAIN
 from .coordinator import DaitemConfigEntry, DaitemCoordinator, DaitemData
 from .entity import DaitemEntity
-
-
-def device_key(system_id: int, device: Device) -> str:
-    """Identity of one device, unique across every family.
-
-    `Device.index` is numbered per list, not globally: on a live installation the detectors
-    run 1 to 9 and the controls 1 to 4, so the index alone collides. Including `kind`
-    separates them, and for a detector it reproduces exactly the identifiers already in the
-    registry, so nothing existing is renumbered.
-    """
-    return f"{system_id}_{device.kind}_{device.index}"
+from .keys import device_key
 
 
 def inventory_devices(system_id: int, data: DaitemData) -> dict[str, Device]:
