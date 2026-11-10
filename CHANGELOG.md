@@ -12,11 +12,13 @@ Beta, for installations with automations or cameras. Requires pydaitem 0.3.0b1.
 - Automations driven through the alarm, one device each: gates, garage doors and shutters
   as covers (or buttons when they only take an impulse), lights as lights, plugs and the
   rest as switches. Only the commands an automation lists are offered, and its state is
-  read again 5 and 30 seconds after a command.
+  read again 5 and 30 seconds after a command. A newer command replaces the reads still
+  pending from an earlier one, and during an exit delay they wait for the delay to end.
 - Cameras as devices with a status sensor, and a "latest clip" timestamp sensor. Live
   video stays out of reach.
 - The event log, for owner accounts: an `event` entity per new entry and a "latest event"
-  sensor, read every fifteen minutes.
+  sensor, read every fifteen minutes. Entries that appear in a log still empty at setup
+  fire too, and the `event` entity turns unavailable while the log cannot be read.
 - Diagnostics now carry the raw answers of every read (automations, cameras, clips,
   widgets, scenarios, schedule, installation record, latest log entries) and a summary of
   what each automation became. Camera access details, uids, labels and addresses are
@@ -27,7 +29,8 @@ Beta, for installations with automations or cameras. Requires pydaitem 0.3.0b1.
   its software version reaches the device page when it reports one.
 - A "Transmitter" connectivity sensor, read every five minutes without a panel session, on
   its own coordinator: it keeps answering while the alarm is unavailable, so an offline box
-  is told apart from a Daitem outage.
+  is told apart from a Daitem outage. Setup reads it and the event log at the same time,
+  so the slower of the two sets the wait.
 - Scenarios run by hand, as a button each. A press publishes the state the scenario leaves
   the alarm in. They are read every thirty minutes, never during an exit delay, and not at
   all on an installation whose inventory says it has none.
@@ -47,8 +50,10 @@ Beta, for installations with automations or cameras. Requires pydaitem 0.3.0b1.
 - "Enable debug logging" now captures the library's lines too (`loggers` in the manifest).
 - Each call to the library is bounded to 60 s, the wait for the panel included, so a slow or
   hung Daitem server fails a cycle rather than stalling it.
-- During an exit delay the five-second cycles read the state alone: the inventory waits for
-  the delay to end, which spares the API a request per cycle.
+- During an exit delay the five-second cycles read the state alone. The inventory,
+  automations, cameras and clips wait for the delay to end, which spares the API a request
+  per cycle and keeps the panel free while it arms. An inventory outage is neither reported
+  as over nor as starting on those cycles, so a device cannot be deleted on a stale list.
 - Diagnostics show the load the integration puts on the Daitem API: requests by endpoint,
   retries, panel sessions and how long they were held.
 - What is added in the Daitem app after setup (a detector learnt by the installer, an
@@ -65,15 +70,15 @@ Beta, for installations with automations or cameras. Requires pydaitem 0.3.0b1.
   Home Assistant is kept too. The alarm's `groups` attribute shows those same names.
 - The two remaining untranslated errors (an automation asked something it no longer
   accepts, a scenario gone from the app) are translated.
-- When Daitem asks the client to back off, the alarm and the event log keep their last
-  state instead of turning unavailable, and polling keeps its pace: pydaitem pauses on its
-  own meanwhile.
+- When Daitem asks the client to back off, the alarm, the event log and the transmitter
+  sensor keep their last state instead of turning unavailable, and polling keeps its pace:
+  pydaitem pauses on its own meanwhile.
 
 ### Notes
 
 - How automations, cameras and clips behave is in the README, under "Automations, cameras
-  and clips: beta". Installations without any of these read them every thirty minutes
-  only.
+  and clips: beta". Installations without any of these, or whose account may not read
+  them (no video right, for example), read them every thirty minutes only.
 
 ### Release checklist
 

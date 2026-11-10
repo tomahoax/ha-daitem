@@ -41,7 +41,9 @@ it does without Home Assistant.
   polling cycles until the read succeeds.
 - The installation record, once, for the transmitter id, then whether the transmitter is
   online, every five minutes.
-- Automations, cameras and the list of recorded clips (not the clips themselves).
+- Automations, cameras and the list of recorded clips (not the clips themselves), every
+  five minutes, or every thirty when there are none or the account may not read them.
+  Never during an exit delay.
 - The event history, for owner accounts only. A restricted account, the one recommended
   here, is refused it and the integration stops asking.
 

@@ -13,8 +13,9 @@ than going unavailable.
 faults, nothing else. A door opening only appears in the panel history, while armed.
 
 **Five-minute latency by default.** Polling speeds up automatically during an arming delay,
-then slows back down. Shortening the normal interval would hold the session almost
-permanently and lock the mobile app out.
+then slows back down. Those faster cycles read the alarm state only: device faults,
+automations and cameras catch up once the delay ends. Shortening the normal interval would
+hold the session almost permanently and lock the mobile app out.
 
 **No history.** Reading it is owner-only; a restricted account is refused.
 

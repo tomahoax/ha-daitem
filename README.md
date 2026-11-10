@@ -42,7 +42,8 @@ your diagnostics (see below).
   and from which device.
 - **Event log** (owner accounts): an `event` entity firing for every new entry, and a
   "latest event" sensor. Entry titles are the Daitem app's own keys
-  (`logEvent.36.label2`), not readable text yet.
+  (`logEvent.36.label2`), not readable text yet. The `event` entity is unavailable while
+  the log cannot be read.
 - **Scenarios** run by hand, as a button each. A scenario performs the actions the
   installer gave it, which may arm or disarm the alarm, exactly as from the app.
 
@@ -84,8 +85,13 @@ like the alarm entity: keep it off dashboards others can reach if it disarms.
   button rather than a cover.
 
 Every automation entity declares an assumed state, so both directions stay available even
-if the state reads wrong. They are read every five minutes, and every thirty minutes on an
-installation that has none, so installations without them pay almost nothing.
+if the state reads wrong. Its state is read again 5 and 30 seconds after a command, and a
+newer command replaces the reads still pending from an earlier one.
+
+They are read every five minutes, and every thirty minutes on an installation that has none
+or whose account may not read them, so installations without them pay almost nothing. They
+are not read during an exit delay, since the read may hold the panel: a read due then, and
+the check after a command, run once the delay ends.
 
 **Added in the app, appears in Home Assistant.** A detector or siren learnt by the
 installer, an automation, a scenario or a camera added in the Daitem app gets its entities

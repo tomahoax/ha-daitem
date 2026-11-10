@@ -1,7 +1,8 @@
 # Daitem
 
 Control a Daitem alarm (Atral "Topaze" platform) from Home Assistant: arming, disarming,
-panel and per-detector fault sensors.
+panel and per-device fault sensors, and in beta automations, cameras, scenarios and the
+event log.
 
 Unofficial, not affiliated with Daitem or the Atral group. It uses the private API of the
 Daitem Secure mobile app, which can change without notice.
@@ -21,11 +22,24 @@ Daitem Secure mobile app, which can change without notice.
   and free again.
 - **Inhibition sensor** on each detector and control, visible by default: a neutralised
   detector is a hole in the protection while the system is armed.
-- **Remotes and keypads** as devices of their own, and the panel's three firmware versions.
+- **Remotes, keypads, sirens, transmitters, transceivers and the box** as devices of their
+  own, and the panel's three firmware versions. Fire and PPMS triggers say whether they
+  have gone off.
+- **Transmitter connectivity sensor**, read without a panel session, which tells an offline
+  box from a Daitem outage.
 - **Group membership**, per detector and as a mapping on the alarm entity.
 - **Diagnostics download**, with credentials, the alarm code and the refresh token
   redacted, so a bug report can carry the raw payloads safely.
 - English and French throughout, entity names included.
+
+**Beta (0.6.0b1)**, for HACS users who enable beta versions:
+
+- **Automations** driven through the alarm: covers, buttons, lights and switches.
+- **Cameras** with their status, and a latest clip sensor. Live video is not available.
+- **Scenarios** run by hand, as a button each.
+- **Event log** for owner accounts: an `event` entity and a latest event sensor.
+
+How each behaves is in the [README](https://github.com/tomahoax/ha-daitem#limitations-worth-reading-before-installing).
 
 ## Setup
 
