@@ -15,7 +15,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from pydaitem import ArmMode, DaitemError, Inventory, PanelState, SystemStatus
 
 from .coordinator import DaitemConfigEntry, DaitemCoordinator
-from .device import display_name
+from .device import registered_name
 from .entity import DaitemEntity
 from .errors import command_error, needs_reauth
 
@@ -49,7 +49,9 @@ FEATURE_MAP: dict[ArmMode, AlarmControlPanelEntityFeature] = {
 }
 
 
-def _group_membership(inventory: Inventory | None) -> dict[str, list[str]]:
+def _group_membership(
+    hass: HomeAssistant, entry: DaitemConfigEntry, inventory: Inventory | None
+) -> dict[str, list[str]]:
     """Which detectors each group contains, alongside `active_groups`.
 
     Keyed by group number as a string, because state attributes are serialised to JSON and
@@ -57,7 +59,8 @@ def _group_membership(inventory: Inventory | None) -> dict[str, list[str]]:
     name appears in the inventory or in the state payload.
 
     Ordered by the number, not by the string it becomes, so group 10 comes after group 2
-    rather than before it.
+    rather than before it. Each detector is called what its device page calls it, the
+    user's rename and the translated name of an unnamed one included.
     """
     if inventory is None:
         return {}
@@ -65,7 +68,7 @@ def _group_membership(inventory: Inventory | None) -> dict[str, list[str]]:
     for device in inventory.devices:
         if device.group is None:
             continue
-        membership.setdefault(device.group, []).append(display_name(device))
+        membership.setdefault(device.group, []).append(registered_name(hass, entry, device))
     return {str(group): sorted(names) for group, names in sorted(membership.items())}
 
 
@@ -115,7 +118,7 @@ class DaitemAlarmPanel(DaitemEntity, AlarmControlPanelEntity):
         return {
             "panel_state": data.status.panel_state.value,
             "active_groups": data.status.active_groups,
-            "groups": _group_membership(data.inventory),
+            "groups": _group_membership(self.hass, self.coordinator.config_entry, data.inventory),
             "last_successful_update": data.last_success.isoformat(),
             # True when another device holds the session: the values shown are then the
             # last known state.

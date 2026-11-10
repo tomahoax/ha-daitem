@@ -128,6 +128,51 @@
   "device": {
     "panel": {
       "name": "Centrale alarme - {installation_name}"
+    },
+    "sensor": {
+      "name": "Détecteur {index}"
+    },
+    "command": {
+      "name": "Commande {index}"
+    },
+    "siren": {
+      "name": "Sirène {index}"
+    },
+    "transmitter": {
+      "name": "Transmetteur {index}"
+    },
+    "transceiver": {
+      "name": "Relais radio {index}"
+    },
+    "box": {
+      "name": "Box"
+    },
+    "fire_trigger": {
+      "name": "Déclencheur incendie {index}"
+    },
+    "ppms_trigger": {
+      "name": "Déclencheur PPMS {index}"
+    },
+    "automation_gate": {
+      "name": "Portail {id}"
+    },
+    "automation_garage": {
+      "name": "Porte de garage {id}"
+    },
+    "automation_shutter": {
+      "name": "Volet {id}"
+    },
+    "automation_light": {
+      "name": "Éclairage {id}"
+    },
+    "automation_plug": {
+      "name": "Prise {id}"
+    },
+    "automation_unknown": {
+      "name": "Automatisme {id}"
+    },
+    "camera": {
+      "name": "Caméra {id}"
     }
   },
   "issues": {
@@ -167,6 +212,12 @@
     },
     "error": {
       "message": "Daitem a refusé la demande : {error}"
+    },
+    "command_not_available": {
+      "message": "Cet automatisme ne peut pas faire cela pour le moment."
+    },
+    "scenario_gone": {
+      "message": "Ce scénario n'existe plus dans l'app Daitem."
     }
   }
 }

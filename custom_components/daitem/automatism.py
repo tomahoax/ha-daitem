@@ -55,6 +55,13 @@ def entity_kind(automatism: Automatism) -> str | None:
     return None
 
 
+def automation_translation_key(automatism: Automatism) -> str:
+    """The device name key of an unlabelled automation: one per category, a generic one else."""
+    known = {str(category) for category in AutomatismCategory}
+    category = automatism.category if automatism.category in known else AutomatismCategory.UNKNOWN
+    return f"automation_{AutomatismCategory(category).name.lower()}"
+
+
 def automatisms_for(coordinator: DaitemCoordinator, kind: str) -> list[Automatism]:
     """The automations a platform creates entities for, logging those no platform takes."""
     automatisms = coordinator.data.automatisms if coordinator.data else []
@@ -89,10 +96,15 @@ class DaitemAutomatismEntity(DaitemEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, key)},
             manufacturer="Daitem",
-            name=automatism.label or f"{automatism.category.title()} {automatism.id}",
             model=automatism.category,
             via_device_id=coordinator.panel_device_id,
         )
+        if automatism.label:
+            self._attr_device_info["name"] = automatism.label
+        else:
+            # Named by Home Assistant in its own language, after what the automation drives.
+            self._attr_device_info["translation_key"] = automation_translation_key(automatism)
+            self._attr_device_info["translation_placeholders"] = {"id": automatism.id}
 
     def current(self) -> Automatism | None:
         """The automation as of the latest read, or None once it is gone."""
@@ -105,7 +117,7 @@ class DaitemAutomatismEntity(DaitemEntity):
     async def _send(self, command: str | None, *, position: int | None = None) -> None:
         automatism = self.current()
         if automatism is None or command is None:
-            raise HomeAssistantError("This automation cannot do that right now.")
+            raise HomeAssistantError(translation_domain=DOMAIN, translation_key="command_not_available")
         try:
             await self.coordinator.system.automation.command(automatism, command, position=position)
         except DaitemError as err:

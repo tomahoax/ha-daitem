@@ -51,6 +51,12 @@ Beta, for installations with automations or cameras. Requires pydaitem 0.3.0b1.
   the delay to end, which spares the API a request per cycle.
 - Diagnostics show the load the integration puts on the Daitem API: requests by endpoint,
   retries, panel sessions and how long they were held.
+- A device left unnamed in the Daitem app (detector, siren, automation, camera...) is named
+  in Home Assistant's own language, "Détecteur 3" on a French server, instead of a
+  hard-coded English name. A name given in the app is kept as it is, and a rename made in
+  Home Assistant is kept too. The alarm's `groups` attribute shows those same names.
+- The two remaining untranslated errors (an automation asked something it no longer
+  accepts, a scenario gone from the app) are translated.
 - When Daitem asks the client to back off, the alarm and the event log keep their last
   state instead of turning unavailable, and polling keeps its pace: pydaitem pauses on its
   own meanwhile.

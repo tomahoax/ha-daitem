@@ -128,6 +128,51 @@
   "device": {
     "panel": {
       "name": "Alarm panel - {installation_name}"
+    },
+    "sensor": {
+      "name": "Detector {index}"
+    },
+    "command": {
+      "name": "Control {index}"
+    },
+    "siren": {
+      "name": "Siren {index}"
+    },
+    "transmitter": {
+      "name": "Transmitter {index}"
+    },
+    "transceiver": {
+      "name": "Transceiver {index}"
+    },
+    "box": {
+      "name": "Box"
+    },
+    "fire_trigger": {
+      "name": "Fire trigger {index}"
+    },
+    "ppms_trigger": {
+      "name": "PPMS trigger {index}"
+    },
+    "automation_gate": {
+      "name": "Gate {id}"
+    },
+    "automation_garage": {
+      "name": "Garage door {id}"
+    },
+    "automation_shutter": {
+      "name": "Shutter {id}"
+    },
+    "automation_light": {
+      "name": "Light {id}"
+    },
+    "automation_plug": {
+      "name": "Plug {id}"
+    },
+    "automation_unknown": {
+      "name": "Automation {id}"
+    },
+    "camera": {
+      "name": "Camera {id}"
     }
   },
   "issues": {
@@ -167,6 +212,12 @@
     },
     "error": {
       "message": "Daitem rejected the request: {error}"
+    },
+    "command_not_available": {
+      "message": "This automation cannot do that right now."
+    },
+    "scenario_gone": {
+      "message": "This scenario no longer exists in the Daitem app."
     }
   }
 }

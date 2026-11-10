@@ -16,6 +16,7 @@ from pydaitem import DaitemAuthError, DaitemClient, DaitemError, DaitemSystem
 from .connectivity import DaitemConnectivityCoordinator
 from .const import CALL_TIMEOUT, CONF_MASTER_CODE, CONF_SYSTEM_ID, DOMAIN
 from .coordinator import DaitemConfigEntry, DaitemCoordinator
+from .device import async_register_inventory_devices
 from .event_log import DaitemEventLogCoordinator
 from .tokens import ConfigEntryTokenStore
 
@@ -86,6 +87,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: DaitemConfigEntry) -> bo
         translation_placeholders={"installation_name": entry.title},
     )
     coordinator.panel_device_id = panel_device.id
+    async_register_inventory_devices(hass, entry)
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True

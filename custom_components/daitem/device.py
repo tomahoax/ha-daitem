@@ -7,26 +7,14 @@ them the same way: one Home Assistant device each, hanging off the panel.
 
 from __future__ import annotations
 
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.device_registry import DeviceInfo
-from pydaitem import Device, DeviceKind
+from pydaitem import Device
 
 from .const import DOMAIN
-from .coordinator import DaitemCoordinator
+from .coordinator import DaitemConfigEntry, DaitemCoordinator
 from .entity import DaitemEntity
-
-#: What a device is called when the installation left its name blank, by kind. Indices are
-#: numbered per family, so the family has to be in the name for two unnamed devices of
-#: different families not to read the same.
-_FALLBACK_NAMES: dict[DeviceKind, str] = {
-    DeviceKind.SENSOR: "Detector",
-    DeviceKind.COMMAND: "Control",
-    DeviceKind.SIREN: "Siren",
-    DeviceKind.TRANSMITTER: "Transmitter",
-    DeviceKind.TRANSCEIVER: "Transceiver",
-    DeviceKind.BOX: "Box",
-    DeviceKind.FIRE_TRIGGER: "Fire trigger",
-    DeviceKind.PPMS_TRIGGER: "PPMS trigger",
-}
 
 
 def device_key(system_id: int, device: Device) -> str:
@@ -40,17 +28,55 @@ def device_key(system_id: int, device: Device) -> str:
     return f"{system_id}_{device.kind}_{device.index}"
 
 
-def display_name(device: Device) -> str:
-    """What to call a device, falling back to its kind and index when unnamed.
+def device_info(coordinator: DaitemCoordinator, device: Device) -> DeviceInfo:
+    """How one inventory device is described, the same way wherever it is registered.
 
-    Shared with the `groups` attribute on the alarm entity, so a detector the installation
-    left unnamed reads the same there as on its own device page rather than as a blank.
+    A name given in the app is kept as it is. An unnamed device is named by Home Assistant
+    in its own language from the family's translation ("Détecteur 3", "Siren 1"), since the
+    integration should not hard-code an English name.
     """
+    info = DeviceInfo(
+        identifiers={(DOMAIN, device_key(coordinator.system_id, device))},
+        manufacturer="Daitem",
+        model=device.type or None,
+        serial_number=device.serial_number or None,
+        sw_version=firmware_version(device),
+        via_device_id=coordinator.panel_device_id,
+    )
     if device.name:
-        return device.name
-    fallback = _FALLBACK_NAMES.get(device.kind, "Device")
-    # The box has no index of its own: the library reads 0, which would only add noise.
-    return f"{fallback} {device.index}" if device.index else fallback
+        info["name"] = device.name
+    else:
+        info["translation_key"] = str(device.kind)
+        info["translation_placeholders"] = {"index": str(device.index)}
+    return info
+
+
+@callback
+def async_register_inventory_devices(hass: HomeAssistant, entry: DaitemConfigEntry) -> None:
+    """Register every device of the inventory, before the platforms describe them.
+
+    The registry resolves a translated name at registration. Doing it here means the alarm
+    entity's `groups` attribute can read that name, whichever platform comes up first.
+    """
+    coordinator = entry.runtime_data
+    inventory = coordinator.inventory
+    if inventory is None:
+        return
+    registry = dr.async_get(hass)
+    for device in inventory.devices:
+        registry.async_get_or_create(config_entry_id=entry.entry_id, **device_info(coordinator, device))
+
+
+def registered_name(hass: HomeAssistant, entry: DaitemConfigEntry, device: Device) -> str:
+    """What the device page calls a device: the user's rename, else its registered name.
+
+    For state attributes, which Home Assistant does not translate.
+    """
+    key = device_key(entry.runtime_data.system_id, device)
+    registered = dr.async_get(hass).async_get_device_by_identifier((DOMAIN, key), entry.entry_id)
+    if registered is not None and (name := registered.name_by_user or registered.name):
+        return name
+    return device.name or key
 
 
 def firmware_version(device: Device) -> str | None:
@@ -70,15 +96,7 @@ class DaitemDeviceEntity(DaitemEntity):
         self._index = device.index
         self._kind = device.kind
         self.device_key = device_key(coordinator.system_id, device)
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, self.device_key)},
-            manufacturer="Daitem",
-            name=display_name(device),
-            model=device.type or None,
-            serial_number=device.serial_number or None,
-            sw_version=firmware_version(device),
-            via_device_id=coordinator.panel_device_id,
-        )
+        self._attr_device_info = device_info(coordinator, device)
 
     def current_device(self) -> Device | None:
         """The device as of the latest inventory, or None while it is unavailable."""

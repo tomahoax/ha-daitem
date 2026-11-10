@@ -156,10 +156,14 @@ class DaitemCameraStatus(DaitemEntity, SensorEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, key)},
             manufacturer="Daitem",
-            name=camera.name or f"Camera {camera.id}",
             model=camera.model or camera.type or None,
             via_device_id=coordinator.panel_device_id,
         )
+        if camera.name:
+            self._attr_device_info["name"] = camera.name
+        else:
+            self._attr_device_info["translation_key"] = "camera"
+            self._attr_device_info["translation_placeholders"] = {"id": str(camera.id)}
 
     def _camera(self) -> Camera | None:
         cameras = self.coordinator.data.cameras if self.coordinator.data else []

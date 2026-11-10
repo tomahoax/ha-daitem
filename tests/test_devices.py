@@ -19,7 +19,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from conftest import ENTRY_DATA, INVENTORY_PAYLOAD
 from custom_components.daitem.const import DOMAIN
-from custom_components.daitem.device import display_name, firmware_version
+from custom_components.daitem.device import firmware_version
 
 #: `system_id` comes from the panel the library reports, not from the config entry.
 PANEL_KEY = "123456"
@@ -185,8 +185,8 @@ async def test_every_family_of_the_inventory_gets_a_name_of_its_own(
     assert safety.attributes["device_class"] == "safety"
 
 
-def test_a_device_reads_its_firmware_and_a_name_without_index() -> None:
-    """The box carries no index: it is "Box", and its software version reaches the registry."""
+def test_a_device_reads_its_main_software_version() -> None:
+    """The box reports two images: its software version is the SOFT one."""
     payload = copy.deepcopy(INVENTORY_PAYLOAD)
     payload["box"] = {
         "serialNumber": "SN-BOX",
@@ -199,5 +199,4 @@ def test_a_device_reads_its_firmware_and_a_name_without_index() -> None:
         },
     }
     box = next(d for d in Inventory.from_json(payload).devices if d.kind == "box")
-    assert display_name(box) == "Box"
     assert firmware_version(box) == "2.1.0"

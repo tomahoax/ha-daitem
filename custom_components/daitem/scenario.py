@@ -10,6 +10,7 @@ from homeassistant.components.button import ButtonEntity
 from homeassistant.exceptions import HomeAssistantError
 from pydaitem import DaitemError, Scenario
 
+from .const import DOMAIN
 from .coordinator import DaitemCoordinator
 from .entity import DaitemEntity
 from .errors import command_error, needs_reauth
@@ -50,7 +51,7 @@ class DaitemScenarioButton(DaitemEntity, ButtonEntity):
     async def async_press(self) -> None:
         scenario = self.current()
         if scenario is None:
-            raise HomeAssistantError("This scenario no longer exists.")
+            raise HomeAssistantError(translation_domain=DOMAIN, translation_key="scenario_gone")
         try:
             status = await self.coordinator.system.scenarios.run(scenario)
         except DaitemError as err:
