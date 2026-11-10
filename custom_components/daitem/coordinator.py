@@ -61,6 +61,7 @@ from .errors import needs_reauth
 from .repairs import async_set_arm_modes_issue, async_set_session_busy_issue
 
 if TYPE_CHECKING:
+    from .connectivity import DaitemConnectivityCoordinator
     from .event_log import DaitemEventLogCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -127,6 +128,8 @@ class DaitemCoordinator(DataUpdateCoordinator[DaitemData]):
         self._follow_ups: list[Callable[[], None]] = []
         self.event_log: DaitemEventLogCoordinator | None = None
         """Set by `async_setup_entry` when the account may read the event log."""
+        self.connectivity: DaitemConnectivityCoordinator | None = None
+        """Set by `async_setup_entry` when the account may read the transmitter's connectivity."""
 
     @property
     def system_id(self) -> int:

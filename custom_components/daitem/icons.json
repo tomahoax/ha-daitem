@@ -72,6 +72,12 @@
         "state": {
           "on": "mdi:bell-alert"
         }
+      },
+      "transmitter_connectivity": {
+        "default": "mdi:lan-disconnect",
+        "state": {
+          "on": "mdi:lan-connect"
+        }
       }
     },
     "button": {

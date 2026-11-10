@@ -76,6 +76,9 @@
       },
       "triggered": {
         "name": "Déclenché"
+      },
+      "transmitter_connectivity": {
+        "name": "Transmetteur"
       }
     },
     "button": {

@@ -25,6 +25,9 @@ Beta, for installations with automations or cameras. Requires pydaitem 0.3.0b1.
   fire and PPMS triggers, with the fault sensors they report. A trigger says whether it has gone off
   (`smoke` or `safety`). A device left unnamed is called after its family ("Siren 1"), and
   its software version reaches the device page when it reports one.
+- A "Transmitter" connectivity sensor, read every five minutes without a panel session, on
+  its own coordinator: it keeps answering while the alarm is unavailable, so an offline box
+  is told apart from a Daitem outage.
 
 ### Changed
 

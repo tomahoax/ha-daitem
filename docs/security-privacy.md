@@ -34,13 +34,16 @@ it does without Home Assistant.
 ## What data is read
 
 - The list of installations on the account, and the chosen installation's state.
-- The device inventory: detectors and controls, with their name, serial number, group,
+- The device inventory: every device family (detectors, controls, sirens, transmitters,
+  transceivers, the box, fire and PPMS triggers), with their name, serial number, group,
   inhibition status and faults.
 - The arming presets defined on the installation, read at setup and retried on later
   polling cycles until the read succeeds.
-
-The event history is not read: it is owner-only, and the account recommended here is a
-restricted one.
+- The installation record, once, for the transmitter id, then whether the transmitter is
+  online, every five minutes.
+- Automations, cameras and the list of recorded clips (not the clips themselves).
+- The event history, for owner accounts only. A restricted account, the one recommended
+  here, is refused it and the integration stops asking.
 
 ## What ends up in logs and diagnostics
 

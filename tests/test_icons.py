@@ -28,7 +28,7 @@ FAULT_KEYS = sorted({fault.value for fault in (*CENTRAL_FAULTS, *DETECTOR_FAULTS
 
 #: Inhibition and triggers are not faults, but they are binary sensors and need the same
 #: treatment.
-BINARY_SENSOR_KEYS = sorted([*FAULT_KEYS, "inhibited", "triggered"])
+BINARY_SENSOR_KEYS = sorted([*FAULT_KEYS, "inhibited", "triggered", "transmitter_connectivity"])
 
 SENSOR_KEYS = sorted([*(d.key for d in FIRMWARES), "group", "camera_status", "last_clip", "last_event"])
 

@@ -29,10 +29,13 @@ from homeassistant.components.binary_sensor import (
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.entity_registry import RegistryEntryHider
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from pydaitem import Device, DeviceKind, Fault, Inventory
 
+from .connectivity import DaitemConnectivityCoordinator
 from .const import DOMAIN, OPTION_FAULT_VISIBILITY_MIGRATED
 from .coordinator import DaitemConfigEntry, DaitemCoordinator
 from .device import DaitemDeviceEntity, device_key
@@ -95,6 +98,8 @@ async def async_setup_entry(
     async_add_entities(
         DaitemCentralFault(coordinator, fault, device_class) for fault, device_class in CENTRAL_FAULTS.items()
     )
+    if coordinator.connectivity is not None:
+        async_add_entities([DaitemTransmitterConnectivity(coordinator.connectivity, coordinator.system_id)])
 
     # Detector entities depend on knowing which devices exist, so unlike the central
     # faults there is no fixed list to fall back on if the first inventory read failed.
@@ -263,3 +268,25 @@ class DaitemDeviceTriggered(DaitemDeviceEntity, BinarySensorEntity):
     def is_on(self) -> bool | None:
         device = self.current_device()
         return device.triggered if device else None
+
+
+class DaitemTransmitterConnectivity(CoordinatorEntity[DaitemConnectivityCoordinator], BinarySensorEntity):
+    """Whether the transmitter, and so the panel, can be reached.
+
+    On the panel device, but fed by its own coordinator: it keeps answering while the
+    alarm entities are unavailable, which is when it matters.
+    """
+
+    _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
+    _attr_translation_key = "transmitter_connectivity"
+
+    def __init__(self, coordinator: DaitemConnectivityCoordinator, system_id: int) -> None:
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{system_id}_transmitter_connectivity"
+        self._attr_device_info = DeviceInfo(identifiers={(DOMAIN, str(system_id))})
+
+    @property
+    def is_on(self) -> bool | None:
+        return self.coordinator.data

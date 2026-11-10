@@ -83,6 +83,7 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: DaitemC
         "latest_clip": _clip_summary(data),
         "failing_reads": sorted(getattr(coordinator, "_extras_failing", set())),
         "event_log": _event_log_summary(coordinator),
+        "transmitter_connectivity": _connectivity_summary(coordinator),
     }
     diagnostics["raw_api"] = await _raw_api(coordinator)
     diagnostics["api_load"] = _api_load(coordinator)
@@ -113,6 +114,17 @@ def _clip_summary(data: Any) -> dict[str, Any] | None:
         "kind": clip.kind,
         "category": clip.category,
         "format": clip.format,
+    }
+
+
+def _connectivity_summary(coordinator: Any) -> dict[str, Any]:
+    connectivity = getattr(coordinator, "connectivity", None)
+    if connectivity is None:
+        return {"enabled": False}
+    return {
+        "enabled": True,
+        "last_update_success": connectivity.last_update_success,
+        "online": connectivity.data,
     }
 
 

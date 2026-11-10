@@ -26,7 +26,7 @@ pydaitem 0.3.0 also brings these, which the integration does not use yet:
 
 | Feature | Calls | Home Assistant entity | Notes |
 |---|---|---|---|
-| Transmitter connectivity | `POST /installation/isConnected` | `binary_sensor` (connectivity) | Needs no panel session, so it never blocks the app |
+| ~~Transmitter connectivity~~ | `POST /installation/isConnected` | `binary_sensor` (connectivity) | Done in 0.6.0b1 |
 | ~~Automations (shutters, gates, lights, plugs)~~ | `GET /v5/.../automatisms`, `POST .../automatisms/{id}/command` | `cover`, `light`, `switch` | Done in 0.6.0b1. Automations exposed as widgets only (`sendAutomationWidgetCommand`) are not yet |
 | Group arming | `sendGroupCommand` (already in pydaitem) | `switch` per group | Groups are already read |
 | Device inhibition | `PATCH /v1/.../products/{serialNumber}` | `switch` per inhibitable device | The inventory already says which devices can be inhibited |
@@ -88,7 +88,7 @@ nothing to add are left out. The library side of each one is in pydaitem's
 
 | Entity | In Home Assistant today | Next for the integration |
 |---|---|---|
-| System | Control panel device | Transmitter connectivity sensor (isConnected needs transmitterId) |
+| System | Control panel device, transmitter connectivity sensor | Done in 0.6.0b1 |
 | SystemState | alarm_control_panel state | armed_custom_bypass or attributes for the second preset; maintenance shown during test mode |
 | Group | Group sensor per detector, groups on the alarm entity | One switch per group (arm_groups already exists) |
 | Alarm | None | Create alert and scenario entities only when the panel allows them |

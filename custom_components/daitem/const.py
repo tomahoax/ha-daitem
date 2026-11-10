@@ -54,3 +54,6 @@ COMMAND_FOLLOW_UP_DELAYS: Final = (5, 30)
 
 #: The event log is a slow, large, asynchronous read: fifteen minutes is plenty.
 EVENT_LOG_SCAN_INTERVAL: Final = 900
+
+#: Whether the transmitter is online: one request with no panel session, at the normal pace.
+CONNECTIVITY_SCAN_INTERVAL: Final = 300

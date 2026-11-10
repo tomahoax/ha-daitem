@@ -127,6 +127,7 @@ def mock_client(mock_system: System, mock_status: SystemStatus, mock_inventory: 
     # Most installations have no automation, camera or clip: that is the default here.
     system.read_extras.return_value = Extras(automatisms=[], cameras=[], clips=[])
     system.logbook.read.return_value = []
+    system.panel.transmitter_online.return_value = True
     system.collect_raw.return_value = {"system_id": mock_system.id, "payloads": {}, "errors": {}}
 
     with (

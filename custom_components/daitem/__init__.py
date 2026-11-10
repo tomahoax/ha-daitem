@@ -13,6 +13,7 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from pydaitem import DaitemAuthError, DaitemClient, DaitemError, DaitemSystem
 
+from .connectivity import DaitemConnectivityCoordinator
 from .const import CALL_TIMEOUT, CONF_MASTER_CODE, CONF_SYSTEM_ID, DOMAIN
 from .coordinator import DaitemConfigEntry, DaitemCoordinator
 from .event_log import DaitemEventLogCoordinator
@@ -67,6 +68,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: DaitemConfigEntry) -> bo
     await event_log.async_refresh()
     coordinator.event_log = None if event_log.forbidden else event_log
 
+    # Same rule for the transmitter's connectivity: no panel session, its own pace, so it
+    # stays readable while the panel is not.
+    connectivity = DaitemConnectivityCoordinator(hass, entry, system)
+    await connectivity.async_refresh()
+    coordinator.connectivity = None if connectivity.forbidden else connectivity
+
     # Registered explicitly, and before the platforms, so the per-device entities can hang
     # off it through `via_device_id` without racing whichever platform would otherwise
     # register it first. Its id is kept on the coordinator rather than looked up again by
@@ -90,6 +97,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: DaitemConfigEntry) -> b
     if unloaded:
         coordinator = entry.runtime_data
         await coordinator.async_shutdown()
-        if coordinator.event_log is not None:
-            await coordinator.event_log.async_shutdown()
+        for secondary in (coordinator.event_log, coordinator.connectivity):
+            if secondary is not None:
+                await secondary.async_shutdown()
     return unloaded
