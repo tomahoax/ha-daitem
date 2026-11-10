@@ -13,7 +13,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from pydaitem import Device
 
 from .const import DOMAIN
-from .coordinator import DaitemConfigEntry, DaitemCoordinator
+from .coordinator import DaitemConfigEntry, DaitemCoordinator, DaitemData
 from .entity import DaitemEntity
 
 
@@ -26,6 +26,16 @@ def device_key(system_id: int, device: Device) -> str:
     registry, so nothing existing is renumbered.
     """
     return f"{system_id}_{device.kind}_{device.index}"
+
+
+def inventory_devices(system_id: int, data: DaitemData) -> dict[str, Device]:
+    """Every device of the latest inventory, keyed by its device identifier.
+
+    Empty while the inventory has never been read, which simply defers the entities to the
+    first cycle that reads it.
+    """
+    inventory = data.inventory
+    return {device_key(system_id, d): d for d in inventory.devices} if inventory else {}
 
 
 def device_info(coordinator: DaitemCoordinator, device: Device) -> DeviceInfo:

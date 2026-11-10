@@ -9,7 +9,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from pydaitem import AutomatismCommand
 
-from .automatism import DaitemAutomatismEntity, automatisms_for
+from .automatism import DaitemAutomatismEntity, async_track_automations
 from .coordinator import DaitemConfigEntry
 
 #: One command at a time: the panel takes a single session.
@@ -21,8 +21,7 @@ async def async_setup_entry(
     entry: DaitemConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    coordinator = entry.runtime_data
-    async_add_entities(DaitemLight(coordinator, a) for a in automatisms_for(coordinator, "light"))
+    async_track_automations(entry, "light", DaitemLight, async_add_entities)
 
 
 class DaitemLight(DaitemAutomatismEntity, LightEntity):

@@ -8,10 +8,16 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from pydaitem import Automatism
 
-from .automatism import IMPULSES, DaitemAutomatismEntity, automatisms_for, first_accepted
+from .automatism import (
+    IMPULSES,
+    DaitemAutomatismEntity,
+    async_report_unmapped_automations,
+    async_track_automations,
+    first_accepted,
+)
 from .coordinator import DaitemConfigEntry, DaitemCoordinator
 from .entity import DaitemEntity
-from .scenario import DaitemScenarioButton, manual_scenarios
+from .scenario import async_track_scenarios
 
 #: One command at a time: the panel takes a single session.
 PARALLEL_UPDATES = 1
@@ -22,10 +28,10 @@ async def async_setup_entry(
     entry: DaitemConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    coordinator = entry.runtime_data
-    async_add_entities([DaitemRefreshButton(coordinator)])
-    async_add_entities(DaitemImpulseButton(coordinator, a) for a in automatisms_for(coordinator, "button"))
-    async_add_entities(DaitemScenarioButton(coordinator, s) for s in manual_scenarios(coordinator))
+    async_add_entities([DaitemRefreshButton(entry.runtime_data)])
+    async_track_automations(entry, "button", DaitemImpulseButton, async_add_entities)
+    async_report_unmapped_automations(entry, async_add_entities)
+    async_track_scenarios(entry, async_add_entities)
 
 
 class DaitemRefreshButton(DaitemEntity, ButtonEntity):

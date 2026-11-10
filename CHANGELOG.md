@@ -51,6 +51,10 @@ Beta, for installations with automations or cameras. Requires pydaitem 0.3.0b1.
   the delay to end, which spares the API a request per cycle.
 - Diagnostics show the load the integration puts on the Daitem API: requests by endpoint,
   retries, panel sessions and how long they were held.
+- What is added in the Daitem app after setup (a detector learnt by the installer, an
+  automation, a scenario, a camera) appears in Home Assistant on the next cycle that reads
+  it, without reloading the integration. An inventory unreadable at startup no longer
+  leaves the per-device sensors missing until a reload either.
 - A device left unnamed in the Daitem app (detector, siren, automation, camera...) is named
   in Home Assistant's own language, "Détecteur 3" on a French server, instead of a
   hard-coded English name. A name given in the app is kept as it is, and a rename made in

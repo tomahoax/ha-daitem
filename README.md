@@ -71,7 +71,7 @@ leaving the alarm greyed out for a full cycle.
 out.
 
 **Scenarios: beta.** They are read every thirty minutes, never during an exit delay, since
-the read may hold the panel. A scenario added in the app appears after a reload. Scenarios
+the read may hold the panel. A scenario added in the app appears within thirty minutes. Scenarios
 the panel runs on its own (on fire, on intrusion) get no button, and one switched off in
 the app shows as unavailable. A button press runs the scenario without asking for the code,
 like the alarm entity: keep it off dashboards others can reach if it disarms.
@@ -82,12 +82,16 @@ like the alarm entity: keep it off dashboards others can reach if it disarms.
   0 (closed) to 100 (open).
 - A gate or garage door that only takes an impulse has no state worth trusting, so it is a
   button rather than a cover.
-- Entities are created at startup: an automation added later in the Daitem app needs a
-  reload of the integration.
 
 Every automation entity declares an assumed state, so both directions stay available even
 if the state reads wrong. They are read every five minutes, and every thirty minutes on an
 installation that has none, so installations without them pay almost nothing.
+
+**Added in the app, appears in Home Assistant.** A detector or siren learnt by the
+installer, an automation, a scenario or a camera added in the Daitem app gets its entities
+on the next cycle that reads it, without reloading the integration: within five minutes for
+devices, automations and cameras (thirty on an installation that had no automation or
+camera yet), thirty for scenarios.
 
 **Testing the beta.** Download the diagnostics (Settings, Devices and services, Daitem, the
 three dots, Download diagnostics) and attach the file to an issue. It now includes the raw

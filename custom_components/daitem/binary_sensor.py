@@ -38,8 +38,8 @@ from pydaitem import Device, DeviceKind, Fault, Inventory
 from .connectivity import DaitemConnectivityCoordinator
 from .const import DOMAIN, OPTION_FAULT_VISIBILITY_MIGRATED
 from .coordinator import DaitemConfigEntry, DaitemCoordinator
-from .device import DaitemDeviceEntity, device_key
-from .entity import DaitemEntity
+from .device import DaitemDeviceEntity, device_key, inventory_devices
+from .entity import DaitemEntity, async_track_new
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -101,44 +101,38 @@ async def async_setup_entry(
     if coordinator.connectivity is not None:
         async_add_entities([DaitemTransmitterConnectivity(coordinator.connectivity, coordinator.system_id)])
 
-    # Detector entities depend on knowing which devices exist, so unlike the central
-    # faults there is no fixed list to fall back on if the first inventory read failed.
-    # The device list is assumed stable; reloading the integration picks up a recovery.
-    inventory = coordinator.inventory
-    if inventory is None:
-        _LOGGER.warning(
-            "The device inventory was unreadable at startup, so no per-detector fault "
-            "sensor could be created. Panel fault sensors are unaffected. Reload the "
-            "integration once the inventory is readable to get the detector sensors."
-        )
-        return
+    if coordinator.inventory is not None:
+        _migrate_fault_visibility(hass, entry, coordinator, coordinator.inventory)
 
-    _migrate_fault_visibility(hass, entry, coordinator, inventory)
-
-    async_add_entities(
-        DaitemDeviceFault(coordinator, device, fault, device_class=device_class)
-        for device in inventory.devices
-        for fault, device_class in DETECTOR_FAULTS.items()
-        if device.anomalies.has(fault) is not None
+    # Per-device entities follow the inventory: a device learnt later, or an inventory that
+    # was unreadable at startup, gets its entities on the first cycle that reads it.
+    async_track_new(
+        entry,
+        "binary_sensor.devices",
+        lambda data: inventory_devices(coordinator.system_id, data),
+        lambda device: _device_entities(coordinator, device),
+        async_add_entities,
     )
 
+
+def _device_entities(coordinator: DaitemCoordinator, device: Device) -> list[BinarySensorEntity]:
+    """The faults a device reports, its inhibition, and whether a trigger has gone off."""
+    entities: list[BinarySensorEntity] = [
+        DaitemDeviceFault(coordinator, device, fault, device_class=device_class)
+        for fault, device_class in DETECTOR_FAULTS.items()
+        if device.anomalies.has(fault) is not None
+    ]
     # A control reports no fault of its own, so this is usually its only entity. Without
     # it the device would carry none at all, and Home Assistant prunes those.
     #
     # `inhibited` counts as well as `inhibitable`: the library defaults both to False when
     # the key is missing, and a device reporting itself inhibited without advertising that
     # it can be would otherwise hide the very hole this entity exists to show.
-    async_add_entities(
-        DaitemDeviceInhibited(coordinator, device)
-        for device in inventory.devices
-        if device.inhibitable or device.inhibited
-    )
-
-    async_add_entities(
-        DaitemDeviceTriggered(coordinator, device, TRIGGERS[device.kind])
-        for device in inventory.devices
-        if device.kind in TRIGGERS
-    )
+    if device.inhibitable or device.inhibited:
+        entities.append(DaitemDeviceInhibited(coordinator, device))
+    if device.kind in TRIGGERS:
+        entities.append(DaitemDeviceTriggered(coordinator, device, TRIGGERS[device.kind]))
+    return entities
 
 
 def _migrate_fault_visibility(

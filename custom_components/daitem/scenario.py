@@ -8,20 +8,28 @@ from __future__ import annotations
 
 from homeassistant.components.button import ButtonEntity
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from pydaitem import DaitemError, Scenario
 
 from .const import DOMAIN
-from .coordinator import DaitemCoordinator
-from .entity import DaitemEntity
+from .coordinator import DaitemConfigEntry, DaitemCoordinator, DaitemData
+from .entity import DaitemEntity, async_track_new
 from .errors import command_error, needs_reauth
 
 #: `Scenario.trigger` of the scenarios a person runs. The others are the panel's to run.
 MANUAL = "MANUAL"
 
 
-def manual_scenarios(coordinator: DaitemCoordinator) -> list[Scenario]:
-    scenarios = coordinator.data.scenarios if coordinator.data else []
-    return [s for s in scenarios if s.trigger == MANUAL]
+def async_track_scenarios(entry: DaitemConfigEntry, async_add_entities: AddConfigEntryEntitiesCallback) -> None:
+    """A button per scenario run by hand, now and for each one added in the app later."""
+    coordinator = entry.runtime_data
+
+    def items(data: DaitemData) -> dict[str, Scenario]:
+        return {f"{coordinator.system_id}_scenario_{s.id}": s for s in data.scenarios if s.trigger == MANUAL}
+
+    async_track_new(
+        entry, "button.scenarios", items, lambda s: [DaitemScenarioButton(coordinator, s)], async_add_entities
+    )
 
 
 class DaitemScenarioButton(DaitemEntity, ButtonEntity):

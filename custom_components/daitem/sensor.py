@@ -27,9 +27,9 @@ from homeassistant.util import dt as dt_util
 from pydaitem import Camera, Device, Inventory
 
 from .const import DOMAIN
-from .coordinator import DaitemConfigEntry, DaitemCoordinator
-from .device import DaitemDeviceEntity
-from .entity import DaitemEntity
+from .coordinator import DaitemConfigEntry, DaitemCoordinator, DaitemData
+from .device import DaitemDeviceEntity, inventory_devices
+from .entity import DaitemEntity, async_track_new
 from .event_log import DaitemEventLogCoordinator
 from .event_log_entity import DaitemEventLogEntity
 
@@ -62,31 +62,43 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     coordinator = entry.runtime_data
-    _add_video_and_log_sensors(coordinator, async_add_entities)
-    inventory = coordinator.inventory
-    if inventory is None:
-        # Everything on this platform is read out of the inventory, so an unreadable one at
-        # startup leaves the platform empty until a reload. Said out loud, because all of
-        # these entities are hidden by default: their absence is otherwise invisible.
-        _LOGGER.warning(
-            "The device inventory was unreadable at startup, so no firmware or group "
-            "sensor could be created. Reload the integration once the inventory is "
-            "readable to get them."
-        )
-        return
+    sid = coordinator.system_id
+    if coordinator.event_log is not None:
+        async_add_entities([DaitemLastEvent(coordinator.event_log, sid)])
+
+    # Every list below follows the reads: what the app gains later, or what an unreadable
+    # first read hid, gets its entity on the next cycle that reads it.
 
     # Only for the versions this installation actually reports, so a panel that returns no
     # firmware block does not end up with three entities stuck on unknown forever.
-    async_add_entities(
-        DaitemFirmware(coordinator, description)
-        for description in FIRMWARES
-        if description.value(inventory) is not None
+    def firmwares(data: DaitemData) -> dict[str, FirmwareDescription]:
+        inventory = data.inventory
+        return {d.key: d for d in FIRMWARES if inventory and d.value(inventory) is not None}
+
+    async_track_new(
+        entry, "sensor.firmwares", firmwares, lambda d: [DaitemFirmware(coordinator, d)], async_add_entities
     )
 
     # Controls report no group, only detectors do (confirmed on a live installation).
-    async_add_entities(
-        DaitemDeviceGroup(coordinator, device) for device in inventory.devices if device.group is not None
+    def grouped(data: DaitemData) -> dict[str, Device]:
+        return {key: d for key, d in inventory_devices(sid, data).items() if d.group is not None}
+
+    async_track_new(entry, "sensor.groups", grouped, lambda d: [DaitemDeviceGroup(coordinator, d)], async_add_entities)
+
+    def cameras(data: DaitemData) -> dict[str, Camera]:
+        return {f"{sid}_camera_{c.id}": c for c in data.cameras}
+
+    async_track_new(
+        entry, "sensor.cameras", cameras, lambda c: [DaitemCameraStatus(coordinator, c)], async_add_entities
     )
+
+    # One sensor, once the installation shows any video hardware or clip.
+    def video(data: DaitemData) -> dict[str, None]:
+        devices = data.inventory.devices if data.inventory else []
+        found = data.cameras or data.clips or any(d.is_video for d in devices)
+        return {"last_clip": None} if found else {}
+
+    async_track_new(entry, "sensor.last_clip", video, lambda _: [DaitemLastClip(coordinator)], async_add_entities)
 
 
 class DaitemFirmware(DaitemEntity, SensorEntity):
@@ -126,20 +138,6 @@ class DaitemDeviceGroup(DaitemDeviceEntity, SensorEntity):
     def native_value(self) -> int | None:
         device = self.current_device()
         return device.group if device else None
-
-
-def _add_video_and_log_sensors(
-    coordinator: DaitemCoordinator, async_add_entities: AddConfigEntryEntitiesCallback
-) -> None:
-    data = coordinator.data
-    cameras = data.cameras if data else []
-    async_add_entities(DaitemCameraStatus(coordinator, camera) for camera in cameras)
-    inventory = coordinator.inventory
-    has_image_detector = bool(inventory and any(device.is_video for device in inventory.devices))
-    if cameras or (data and data.clips) or has_image_detector:
-        async_add_entities([DaitemLastClip(coordinator)])
-    if coordinator.event_log is not None:
-        async_add_entities([DaitemLastEvent(coordinator.event_log, coordinator.system_id)])
 
 
 class DaitemCameraStatus(DaitemEntity, SensorEntity):

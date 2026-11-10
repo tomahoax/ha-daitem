@@ -6,6 +6,7 @@ session, the alarm must not become unavailable in Home Assistant.
 
 from __future__ import annotations
 
+import copy
 import logging
 from datetime import timedelta
 from unittest.mock import AsyncMock
@@ -32,7 +33,7 @@ from pydaitem import (
 )
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from conftest import ENTRY_DATA
+from conftest import ENTRY_DATA, INVENTORY_PAYLOAD
 from custom_components.daitem.const import (
     ARMING_SCAN_INTERVAL,
     CALL_TIMEOUT,
@@ -603,25 +604,34 @@ async def test_reinstall_does_not_leave_hidden_faults_visible(
     assert entity_registry.async_get(entity_id).hidden_by is None
 
 
-async def test_entities_exist_even_if_the_inventory_fails(
-    hass: HomeAssistant, mock_client: AsyncMock, caplog: pytest.LogCaptureFixture
-) -> None:
-    """A failing inventory must not permanently deprive the user of fault entities."""
+async def test_entities_exist_even_if_the_inventory_fails(hass: HomeAssistant, mock_client: AsyncMock) -> None:
+    """A failing inventory must not deprive the user of fault entities, not even for a while.
+
+    The panel's own sensors exist from the start. The per-device ones arrive with the first
+    cycle that reads the inventory, without a reload.
+    """
     mock_client.system.inventory.read.side_effect = DaitemError("inventory unavailable")
     other = MockConfigEntry(domain=DOMAIN, title="Annexe", data=ENTRY_DATA, unique_id="999")
     other.add_to_hass(hass)
-    with caplog.at_level(logging.WARNING):
-        assert await hass.config_entries.async_setup(other.entry_id)
-        await hass.async_block_till_done()
+    assert await hass.config_entries.async_setup(other.entry_id)
+    await hass.async_block_till_done()
 
     state = hass.states.get("binary_sensor.alarm_panel_annexe_main_power_supply")
     assert state is not None
     # Unknown, not missing: the entity exists and will populate once the inventory returns.
     assert state.state == "unknown"
 
-    # The permanent loss of the per-detector entities must be visible, not just the
-    # central sensors falling back silently.
-    assert "no per-detector fault sensor could be created" in caplog.text
+    payload = copy.deepcopy(INVENTORY_PAYLOAD)
+    payload["genericSensors"]["sensors"] = [
+        {"index": 1, "name": "Hall", "serialNumber": "SN-1", "group": 1, "anomalies": {"radioAlert": False}}
+    ]
+    mock_client.system.inventory.read.side_effect = None
+    mock_client.system.inventory.read.return_value = Inventory.from_json(payload)
+    await other.runtime_data.async_refresh()
+    await hass.async_block_till_done()
+
+    assert hass.states.get("binary_sensor.hall_radio").state == "off"
+    assert hass.states.get("binary_sensor.alarm_panel_annexe_main_power_supply").state == "off"
 
 
 async def test_refresh_token_is_persisted_in_the_config_entry(hass: HomeAssistant, entry: MockConfigEntry) -> None:

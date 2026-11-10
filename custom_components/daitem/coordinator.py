@@ -137,6 +137,8 @@ class DaitemCoordinator(DataUpdateCoordinator[DaitemData]):
         self.event_log: DaitemEventLogCoordinator | None = None
         """Set by `async_setup_entry` when the account may read the event log."""
         self.connectivity: DaitemConnectivityCoordinator | None = None
+        self.known: dict[str, set[str]] = {}
+        """Keys each platform already made entities for, by source. See `async_track_new`."""
         """Set by `async_setup_entry` when the account may read the transmitter's connectivity."""
 
     @property

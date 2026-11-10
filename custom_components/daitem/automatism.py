@@ -16,9 +16,12 @@ the state reads.
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.entity import Entity
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from pydaitem import (
     Automatism,
     AutomatismCategory,
@@ -27,8 +30,8 @@ from pydaitem import (
 )
 
 from .const import DOMAIN
-from .coordinator import DaitemCoordinator
-from .entity import DaitemEntity
+from .coordinator import DaitemConfigEntry, DaitemCoordinator, DaitemData
+from .entity import DaitemEntity, async_track_new
 from .errors import command_error, needs_reauth
 
 _LOGGER = logging.getLogger(__name__)
@@ -62,20 +65,45 @@ def automation_translation_key(automatism: Automatism) -> str:
     return f"automation_{AutomatismCategory(category).name.lower()}"
 
 
-def automatisms_for(coordinator: DaitemCoordinator, kind: str) -> list[Automatism]:
-    """The automations a platform creates entities for, logging those no platform takes."""
-    automatisms = coordinator.data.automatisms if coordinator.data else []
-    if kind == "button":
-        for automatism in automatisms:
-            if entity_kind(automatism) is None:
-                _LOGGER.info(
-                    "Automation %s (%s) has no entity: its commands %s fit none. Please "
-                    "report it with the diagnostics.",
-                    automatism.label or automatism.id,
-                    automatism.category,
-                    automatism.available_commands,
-                )
-    return [a for a in automatisms if entity_kind(a) == kind]
+def automation_key(system_id: int, automatism: Automatism) -> str:
+    """Identity of an automation's device, and the key its entities are tracked by."""
+    return f"{system_id}_automatism_{automatism.id}"
+
+
+def async_track_automations(
+    entry: DaitemConfigEntry,
+    kind: str,
+    factory: Callable[[DaitemCoordinator, Automatism], Entity],
+    async_add_entities: AddConfigEntryEntitiesCallback,
+) -> None:
+    """Give each automation of this platform's kind its entity, now and when one is added."""
+    coordinator = entry.runtime_data
+
+    def items(data: DaitemData) -> dict[str, Automatism]:
+        return {automation_key(coordinator.system_id, a): a for a in data.automatisms if entity_kind(a) == kind}
+
+    async_track_new(entry, f"{kind}.automations", items, lambda a: [factory(coordinator, a)], async_add_entities)
+
+
+def async_report_unmapped_automations(
+    entry: DaitemConfigEntry, async_add_entities: AddConfigEntryEntitiesCallback
+) -> None:
+    """Log, once per automation, those whose commands fit no entity."""
+    coordinator = entry.runtime_data
+
+    def items(data: DaitemData) -> dict[str, Automatism]:
+        return {automation_key(coordinator.system_id, a): a for a in data.automatisms if entity_kind(a) is None}
+
+    def report(automatism: Automatism) -> list[Entity]:
+        _LOGGER.info(
+            "Automation %s (%s) has no entity: its commands %s fit none. Please report it with the diagnostics.",
+            automatism.label or automatism.id,
+            automatism.category,
+            automatism.available_commands,
+        )
+        return []
+
+    async_track_new(entry, "unmapped.automations", items, report, async_add_entities)
 
 
 def first_accepted(automatism: Automatism, *candidates: str) -> str | None:
@@ -91,7 +119,7 @@ class DaitemAutomatismEntity(DaitemEntity):
     def __init__(self, coordinator: DaitemCoordinator, automatism: Automatism) -> None:
         super().__init__(coordinator)
         self._automatism_id = automatism.id
-        key = f"{coordinator.system_id}_automatism_{automatism.id}"
+        key = automation_key(coordinator.system_id, automatism)
         self._attr_unique_id = key
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, key)},
