@@ -3,7 +3,7 @@
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and semantic
 versioning.
 
-## [0.6.0b1] - Unreleased
+## [0.6.0b1] - 2026-11-10
 
 Beta, for installations with automations or cameras. Requires pydaitem 0.3.0b1.
 
